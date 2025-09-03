@@ -61,7 +61,24 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				success: {
+					DEFAULT: 'hsl(var(--success))',
+					foreground: 'hsl(var(--success-foreground))'
+				},
+				warning: {
+					DEFAULT: 'hsl(var(--warning))',
+					foreground: 'hsl(var(--warning-foreground))'
+				},
+				info: {
+					DEFAULT: 'hsl(var(--info))',
+					foreground: 'hsl(var(--info-foreground))'
+				},
+				'progress-bg': 'hsl(var(--progress-bg))',
+				'progress-fill': 'hsl(var(--progress-fill))',
+				'quiz-correct': 'hsl(var(--quiz-correct))',
+				'quiz-incorrect': 'hsl(var(--quiz-incorrect))',
+				'quiz-pending': 'hsl(var(--quiz-pending))'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

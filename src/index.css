@@ -53,6 +53,23 @@ All colors MUST be HSL.
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Learning system specific colors */
+    --success: 142 76% 36%;
+    --success-foreground: 355.7 100% 97.3%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 48 96% 89%;
+    --info: 199 89% 48%;
+    --info-foreground: 210 40% 98%;
+    
+    /* Learning progress colors */
+    --progress-bg: 210 40% 96.1%;
+    --progress-fill: 142 76% 36%;
+    
+    /* Quiz colors */
+    --quiz-correct: 142 76% 36%;
+    --quiz-incorrect: 0 84.2% 60.2%;
+    --quiz-pending: 38 92% 50%;
   }
 
   .dark {
@@ -91,6 +108,23 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Learning system specific colors - dark mode */
+    --success: 142 76% 36%;
+    --success-foreground: 355.7 100% 97.3%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 48 96% 89%;
+    --info: 199 89% 48%;
+    --info-foreground: 210 40% 98%;
+    
+    /* Learning progress colors - dark mode */
+    --progress-bg: 217.2 32.6% 17.5%;
+    --progress-fill: 142 76% 36%;
+    
+    /* Quiz colors - dark mode */
+    --quiz-correct: 142 76% 36%;
+    --quiz-incorrect: 0 62.8% 30.6%;
+    --quiz-pending: 38 92% 50%;
   }
 }
 
