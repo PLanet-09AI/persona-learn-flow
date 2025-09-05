@@ -126,9 +126,63 @@ export const ChatInterface = ({ content, userProfile }: ChatInterfaceProps) => {
               >
                 {message.role === "assistant" ? (
                   <div className="prose dark:prose-invert prose-sm max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {message.content}
-                    </ReactMarkdown>
+                    {(ReactMarkdown as any)({
+                      remarkPlugins: [remarkGfm],
+                      components: {
+                        // Enhanced styling for chat interface
+                        h1: ({children}: any) => (
+                          <h1 className="text-base font-bold mt-3 mb-2 text-primary">
+                            {children}
+                          </h1>
+                        ),
+                        h2: ({children}: any) => (
+                          <h2 className="text-sm font-semibold mt-2 mb-1 text-primary">
+                            {children}
+                          </h2>
+                        ),
+                        h3: ({children}: any) => (
+                          <h3 className="text-sm font-medium mt-2 mb-1 text-foreground">
+                            {children}
+                          </h3>
+                        ),
+                        p: ({children}: any) => (
+                          <p className="mb-2 text-sm leading-relaxed">
+                            {children}
+                          </p>
+                        ),
+                        ul: ({children}: any) => (
+                          <ul className="space-y-1 mb-2 ml-4 list-none">
+                            {children}
+                          </ul>
+                        ),
+                        li: ({children}: any) => (
+                          <li className="flex items-start gap-1 text-sm">
+                            <span className="text-primary mt-1 text-xs">•</span>
+                            <span className="flex-1">{children}</span>
+                          </li>
+                        ),
+                        code: ({inline, children, ...props}: any) => (
+                          inline 
+                            ? <code className="bg-secondary/70 text-primary px-1 py-0.5 rounded text-xs font-mono" {...props}>
+                                {children}
+                              </code>
+                            : <code className="block bg-secondary/30 p-2 rounded text-xs font-mono" {...props}>
+                                {children}
+                              </code>
+                        ),
+                        strong: ({children}: any) => (
+                          <strong className="font-semibold text-primary">
+                            {children}
+                          </strong>
+                        ),
+                        em: ({children}: any) => (
+                          <em className="italic text-foreground/80">
+                            {children}
+                          </em>
+                        ),
+                      },
+                      children: message.content
+                    })}
                   </div>
                 ) : (
                   <p className="text-sm">{message.content}</p>

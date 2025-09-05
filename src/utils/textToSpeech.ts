@@ -9,6 +9,7 @@ interface SpeechOptions {
   volume?: number; // Volume (0 to 1)
   voice?: string; // Voice name (optional)
   language?: string; // Language code (e.g. 'en-US')
+  onEnd?: () => void; // Callback when speech ends
 }
 
 class TextToSpeechService {
@@ -44,6 +45,11 @@ class TextToSpeechService {
       if (selectedVoice) {
         this.utterance.voice = selectedVoice;
       }
+    }
+    
+    // Add end event listener if onEnd callback is provided
+    if (options.onEnd) {
+      this.utterance.onend = options.onEnd;
     }
     
     // Start speaking

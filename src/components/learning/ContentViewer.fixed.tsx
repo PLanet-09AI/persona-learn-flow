@@ -204,42 +204,42 @@ The quiz will include practical scenarios where you apply ${topic}!
                       </p>
                     </div>
                   )}
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw]}
-                    components={{
+                  {(ReactMarkdown as any)({
+                    remarkPlugins: [remarkGfm],
+                    rehypePlugins: [rehypeRaw],
+                    components: {
                       // Headers with enhanced styling
-                      h1: ({children}) => (
+                      h1: ({children}: any) => (
                         <h1 className="text-2xl font-bold mt-6 mb-4 pb-2 border-b border-border">{children}</h1>
                       ),
-                      h2: ({children}) => (
+                      h2: ({children}: any) => (
                         <h2 className="text-xl font-semibold mt-5 mb-3 text-primary">{children}</h2>
                       ),
-                      h3: ({children}) => (
+                      h3: ({children}: any) => (
                         <h3 className="text-lg font-medium mt-4 mb-2">{children}</h3>
                       ),
                       
                       // Table styling
-                      table: ({children}) => (
+                      table: ({children}: any) => (
                         <div className="my-6 w-full overflow-y-auto">
                           <table className="min-w-full divide-y divide-border border border-border rounded-md">{children}</table>
                         </div>
                       ),
-                      thead: ({children}) => (
+                      thead: ({children}: any) => (
                         <thead className="bg-muted">{children}</thead>
                       ),
-                      th: ({children}) => (
+                      th: ({children}: any) => (
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{children}</th>
                       ),
-                      td: ({children}) => (
+                      td: ({children}: any) => (
                         <td className="px-4 py-3 whitespace-nowrap text-sm">{children}</td>
                       ),
-                      tr: ({children}) => (
+                      tr: ({children}: any) => (
                         <tr className="border-t border-border">{children}</tr>
                       ),
                       
                       // Enhanced links
-                      a: ({href, children}) => (
+                      a: ({href, children}: any) => (
                         <a 
                           href={href} 
                           className="text-primary hover:underline" 
@@ -251,7 +251,7 @@ The quiz will include practical scenarios where you apply ${topic}!
                       ),
                       
                       // Enhanced code blocks with syntax styling
-                      code: ({className, children, node, ...props}) => {
+                      code: ({className, children, node, ...props}: any) => {
                         const match = /language-(\w+)/.exec(className || '');
                         return (
                           <code 
@@ -264,27 +264,26 @@ The quiz will include practical scenarios where you apply ${topic}!
                       },
                       
                       // Better code block container
-                      pre: ({children}) => (
+                      pre: ({children}: any) => (
                         <pre className="bg-muted p-4 rounded-md my-4 overflow-x-auto border border-border font-mono text-sm">
                           {children}
                         </pre>
                       ),
                       
                       // Enhanced blockquotes
-                      blockquote: ({children}) => (
+                      blockquote: ({children}: any) => (
                         <blockquote className="border-l-4 border-primary pl-4 italic my-4">
                           {children}
                         </blockquote>
                       ),
                       
                       // Lists with better spacing
-                      ul: ({children}) => <ul className="space-y-2 my-4 ml-6">{children}</ul>,
-                      ol: ({children}) => <ol className="space-y-2 my-4 ml-6">{children}</ol>,
-                      li: ({children}) => <li className="pl-1">{children}</li>,
-                    }}
-                  >
-                    {content}
-                  </ReactMarkdown>
+                      ul: ({children}: any) => <ul className="space-y-2 my-4 ml-6">{children}</ul>,
+                      ol: ({children}: any) => <ol className="space-y-2 my-4 ml-6">{children}</ol>,
+                      li: ({children}: any) => <li className="pl-1">{children}</li>,
+                    },
+                    children: content
+                  })}
                 </div>
               </TabsContent>
               

@@ -8,13 +8,13 @@ import { getFirestore, collection, getDocs, limit, query } from "firebase/firest
 
 // Firebase configuration (hard-coded for this test)
 const firebaseConfig = {
-  apiKey: "AIzaSyBCE7nTnzEDkPOPwVkYkZC7QCbpAnT50AQ",
-  authDomain: "ndu-ai-learning-system.firebaseapp.com",
-  projectId: "ndu-ai-learning-system",
-  storageBucket: "ndu-ai-learning-system.appspot.com",
-  messagingSenderId: "71646856792",
-  appId: "1:71646856792:web:d5f83e4a79f96f3999b699",
-  measurementId: "G-PH7JRWCL19"
+  apiKey: "AIzaSyBKgjQnf__SzIuP-pl-SUxyDyDCbJOpLbQ",
+  authDomain: "ndu-ai-lms.firebaseapp.com",
+  projectId: "ndu-ai-lms",
+  storageBucket: "ndu-ai-lms.firebasestorage.app",
+  messagingSenderId: "377111671886",
+  appId: "1:377111671886:web:a6b2e7cbc13939696f7f1f",
+  measurementId: "G-XRP4PYG1MH"
 };
 
 // Initialize Firebase

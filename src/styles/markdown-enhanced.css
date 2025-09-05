@@ -1,0 +1,207 @@
+/* Additional styles for callouts */
+.callout {
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  border-left: 4px solid;
+  border-radius: 0 8px 8px 0;
+  background-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.callout-header {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.95em;
+}
+
+.callout-note {
+  border-color: #2563eb;
+  background-color: rgba(37, 99, 235, 0.05);
+}
+
+.callout-important {
+  border-color: #dc2626;
+  background-color: rgba(220, 38, 38, 0.05);
+}
+
+.callout-warning {
+  border-color: #f59e0b;
+  background-color: rgba(245, 158, 11, 0.05);
+}
+
+.callout-tip {
+  border-color: #10b981;
+  background-color: rgba(16, 185, 129, 0.05);
+}
+
+.callout-info {
+  border-color: #6366f1;
+  background-color: rgba(99, 102, 241, 0.05);
+}
+
+.callout-keypoint {
+  border-color: #8b5cf6;
+  background-color: rgba(139, 92, 246, 0.05);
+}
+
+/* Better styling for emojis */
+.emoji {
+  display: inline-block;
+  font-size: 1.2em;
+  vertical-align: middle;
+  margin: 0 0.1em;
+}
+
+/* Enhanced table styling */
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.markdown-body table thead tr {
+  background-color: var(--secondary);
+}
+
+.markdown-body table th {
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75em 1em;
+  border-bottom: 2px solid var(--border);
+}
+
+.markdown-body table td {
+  padding: 0.75em 1em;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Enhanced Learning Outcomes */
+.learning-outcomes {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--secondary) 0%, rgba(59, 130, 246, 0.05) 100%);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.learning-outcomes-header {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.learning-outcomes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.learning-outcome {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  background: rgba(59, 130, 246, 0.03);
+  border-radius: 8px;
+  border-left: 3px solid var(--primary);
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.learning-outcome:hover {
+  background: rgba(59, 130, 246, 0.08);
+  transform: translateX(4px);
+}
+
+.markdown-body table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.markdown-body table tbody tr:nth-child(even) {
+  background-color: var(--accent);
+}
+
+/* Better code blocks */
+.markdown-body pre {
+  border-radius: 8px;
+  padding: 1em;
+  margin: 1em 0;
+  overflow-x: auto;
+  background-color: var(--code-bg, #1e1e1e);
+  border: 1px solid var(--border);
+}
+
+.markdown-body code {
+  font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+/* Better headings */
+.markdown-body h1, 
+.markdown-body h2, 
+.markdown-body h3, 
+.markdown-body h4, 
+.markdown-body h5, 
+.markdown-body h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.markdown-body h1 {
+  font-size: 2em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
+}
+
+.markdown-body h2 {
+  font-size: 1.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
+}
+
+.markdown-body h3 {
+  font-size: 1.25em;
+}
+
+/* Better lists */
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.5em;
+  margin: 1em 0;
+}
+
+.markdown-body li + li {
+  margin-top: 0.25em;
+}
+
+/* Print styles for better PDF output */
+@media print {
+  .markdown-body {
+    font-size: 12pt;
+  }
+  
+  .markdown-body pre,
+  .markdown-body code {
+    font-size: 10pt;
+    border: 1px solid #ddd;
+  }
+  
+  .markdown-body table {
+    page-break-inside: avoid;
+  }
+}

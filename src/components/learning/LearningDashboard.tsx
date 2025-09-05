@@ -11,6 +11,7 @@ import { Leaderboard } from "./Leaderboard";
 export type LearningStyle = "visual" | "auditory" | "reading" | "kinesthetic";
 
 export interface UserProfile {
+  id?: string; // Add optional id field
   field: string;
   learningStyle: LearningStyle;
   score: number;

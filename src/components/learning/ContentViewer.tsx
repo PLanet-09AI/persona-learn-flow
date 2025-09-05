@@ -14,7 +14,11 @@ import remarkGfm from "remark-gfm";
 import { formatContent } from "@/utils/markdownUtils";
 import { textToSpeech } from "@/utils/textToSpeech";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ContentChat } from "./ContentChat";
+import { useAuth } from "@/hooks/use-auth";
+import QueueStatusIndicator from "@/components/ui/queue-status";
 import "@/styles/markdown.css";
+import "@/styles/markdown-premium.css";
 
 interface ContentViewerProps {
   userProfile: UserProfile;
@@ -28,11 +32,9 @@ export const ContentViewer = ({ userProfile, content, onStartQuiz, onContentGene
   const [currentTopic, setCurrentTopic] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [activeTab, setActiveTab] = useState("content");
-  const [chatMessages, setChatMessages] = useState<Array<{role: string, content: string}>>([]);
-  const [userQuestion, setUserQuestion] = useState("");
-  const [isAskingQuestion, setIsAskingQuestion] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { user } = useAuth(); // Get user from auth context
 
   // Generate content using AI
   const generateContent = async (topic?: string) => {
@@ -45,12 +47,11 @@ export const ContentViewer = ({ userProfile, content, onStartQuiz, onContentGene
       const generatedContent = await generateAIContent({
         topic: targetTopic,
         field: userProfile.field,
-        learningStyle: userProfile.learningStyle
+        learningStyle: userProfile.learningStyle,
+        userId: user?.id // Pass the user ID for tracking
       });
       
       onContentGenerated(generatedContent);
-      // Reset chat messages when generating new content
-      setChatMessages([]);
     } catch (error) {
       console.error('Error generating content:', error);
       toast({
@@ -63,541 +64,279 @@ export const ContentViewer = ({ userProfile, content, onStartQuiz, onContentGene
     }
   };
 
-  // Submit a question about the learning content
-  const submitQuestion = async () => {
-    if (!userQuestion.trim()) return;
-
-    setIsAskingQuestion(true);
-    
-    // Add the user's question to chat
-    setChatMessages(prev => [...prev, { role: 'user', content: userQuestion }]);
-    
-    try {
-      // In a real application, we would call an API endpoint here
-      // For now, we'll simulate a response
-      const context = `This is a question about the topic: ${currentTopic} in the field of ${userProfile.field}. 
-                      The content is: ${content.substring(0, 500)}...`;
-                      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Add AI response to chat
-      setChatMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: `Based on the learning content about ${currentTopic} in ${userProfile.field}, 
-                 here's what I can tell you about "${userQuestion}":
-                 
-                 The key points to understand are related to the core concepts presented in the material.
-                 [This would be replaced with an actual AI response in production]` 
-      }]);
-      
-      setUserQuestion("");
-    } catch (error) {
-      console.error('Error asking question:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process your question. Please try again.",
-        variant: "destructive"
+  // Handle text-to-speech
+  const handleTextToSpeech = () => {
+    if (isSpeaking) {
+      textToSpeech.stop();
+      setIsSpeaking(false);
+    } else {
+      const plainText = content.replace(/[#*_~`]/g, '');
+      textToSpeech.speak(plainText, {
+        onEnd: () => setIsSpeaking(false)
       });
-      
-      // Add error message to chat
-      setChatMessages(prev => [...prev, { 
-        role: 'system', 
-        content: 'Sorry, I encountered an error processing your question. Please try again.' 
-      }]);
-    } finally {
-      setIsAskingQuestion(false);
+      setIsSpeaking(true);
     }
   };
 
+  // Get a random topic based on the user's field
   const getRandomTopic = () => {
     const topics = {
-      "Web Development": ["HTML Basics", "CSS Flexbox", "JavaScript Functions", "React Components"],
-      "Digital Marketing": ["SEO Fundamentals", "Social Media Strategy", "Email Marketing", "Content Creation"],
-      "Data Science": ["Statistics Basics", "Data Visualization", "Machine Learning Intro", "Python Pandas"],
-      "Graphic Design": ["Color Theory", "Typography", "Layout Principles", "Design Software"],
-      "Business Strategy": ["SWOT Analysis", "Market Research", "Competitive Analysis", "Business Models"]
+      "Computer Science": ["Data Structures", "Algorithms", "Software Engineering", "Machine Learning", "Web Development"],
+      "Mathematics": ["Calculus", "Linear Algebra", "Statistics", "Discrete Math", "Number Theory"],
+      "Physics": ["Classical Mechanics", "Quantum Physics", "Thermodynamics", "Electromagnetism", "Relativity"],
+      "Biology": ["Cell Biology", "Genetics", "Ecology", "Evolution", "Physiology"],
+      "Chemistry": ["Organic Chemistry", "Inorganic Chemistry", "Physical Chemistry", "Biochemistry", "Analytical Chemistry"],
+      "History": ["Ancient Civilizations", "Middle Ages", "Modern History", "World Wars", "Cold War"]
     };
     
-    const fieldTopics = topics[userProfile.field as keyof typeof topics] || ["Introduction", "Key Concepts", "Best Practices", "Advanced Techniques"];
+    const fieldTopics = topics[userProfile.field as keyof typeof topics] || ["General Knowledge", "Basic Concepts", "Fundamentals"];
     return fieldTopics[Math.floor(Math.random() * fieldTopics.length)];
   };
 
-  const generateVisualContent = (topic: string) => {
-    return `# ${topic} in ${userProfile.field}
-
-## Visual Overview 🎨
-
-Imagine ${topic.toLowerCase()} as a **visual landscape**:
-
-🔷 **Foundation Layer**: Think of this like the ground floor of a building - solid and essential
-├── Core concepts form the base structure
-├── Supporting elements add stability
-└── Advanced features build upward
-
-🔸 **Key Components** (Picture a flowchart):
-• **Input** → **Process** → **Output**
-• Like a factory assembly line, each step transforms the previous one
-• Visual cue: Color-code each stage (Blue → Green → Gold)
-
-## Mind Map Structure 🧠
-\`\`\`
-        ${topic}
-         /  |  \\
-    Basic   Core   Advanced
-     /       |       \\
-  Step1   Key Idea  Expert
-  Step2   Method    Tricks
-  Step3   Tools     Tips
-\`\`\`
-
-**Visual Analogy**: Think of ${topic.toLowerCase()} like a tree - roots (basics), trunk (core concepts), branches (applications), and leaves (specific techniques).
-
-## Next Steps 👀
-Ready to test your visual understanding? The quiz will include diagram-based questions!`;
-  };
-
-  const generateAuditoryContent = (topic: string) => {
-    return `# ${topic} in ${userProfile.field}
-
-## Listen Up! 🎧
-
-**Say this out loud**: "${topic} is the key to mastering ${userProfile.field}"
-
-### The Rhythm of Learning 🎵
-Think of ${topic.toLowerCase()} like a song with three verses:
-
-**Verse 1** - The Setup (Hum a low note)
-- Foundation concepts (repeat 3 times)
-- Core principles (say slowly)
-- Basic terminology (emphasize each syllable)
-
-**Verse 2** - The Development (Medium pitch)
-- Advanced techniques (speak with confidence) 
-- Practical applications (use examples)
-- Common patterns (create a rhythm)
-
-**Verse 3** - The Mastery (High, confident tone)
-- Expert strategies (speak clearly)
-- Problem-solving approaches (pause between points)
-- Real-world implementation (tell a story)
-
-### Memory Palace 🏰
-**Repeat after me**: "I understand ${topic} because..."
-1. **First**, I remember the main concept
-2. **Then**, I connect it to what I know
-3. **Finally**, I can teach it to others
-
-### Discussion Points 💬
-If you were explaining ${topic} to a friend, what would you say first?
-
-**Ready to quiz yourself?** The questions will test what you can recall and explain verbally!`;
-  };
-
-  const generateReadingContent = (topic: string) => {
-    return `# Comprehensive Guide: ${topic} in ${userProfile.field}
-
-## Table of Contents
-1. Introduction and Objectives
-2. Core Concepts and Definitions  
-3. Detailed Methodology
-4. Practical Applications
-5. Best Practices and Guidelines
-6. Summary and Key Takeaways
-
----
-
-## 1. Introduction and Objectives
-
-**Definition**: ${topic} represents a fundamental aspect of ${userProfile.field} that encompasses multiple interconnected concepts and practical applications.
-
-**Learning Objectives**:
-- Understand the theoretical foundation of ${topic}
-- Identify key components and their relationships
-- Apply concepts to real-world scenarios
-- Develop practical skills and expertise
-
-## 2. Core Concepts and Definitions
-
-**Primary Concept**: The foundation of ${topic} rests on three pillars:
-
-- **Pillar A**: Theoretical Framework
-  - Underlying principles and theories
-  - Historical development and evolution
-  - Current industry standards and practices
-
-- **Pillar B**: Practical Implementation  
-  - Step-by-step methodologies
-  - Tools and technologies involved
-  - Measurement and evaluation criteria
-
-- **Pillar C**: Strategic Applications
-  - Business impact and value creation
-  - Integration with existing systems
-  - Future trends and developments
-
-## 3. Detailed Methodology
-
-**Step-by-Step Process**:
-
-1. **Assessment Phase**
-   - Analyze current situation
-   - Identify requirements and constraints
-   - Define success criteria
-
-2. **Planning Phase**
-   - Develop comprehensive strategy
-   - Allocate resources effectively
-   - Create timeline and milestones
-
-3. **Implementation Phase**
-   - Execute planned activities
-   - Monitor progress continuously
-   - Adjust approach as needed
-
-4. **Evaluation Phase**
-   - Measure results against objectives
-   - Document lessons learned
-   - Plan for continuous improvement
-
-## 4. Key Terminology
-
-- **Term 1**: Specific definition and context
-- **Term 2**: Usage examples and applications  
-- **Term 3**: Relationship to other concepts
-
-## 5. Summary and Key Takeaways
-
-**Essential Points to Remember**:
-• ${topic} is crucial for success in ${userProfile.field}
-• Implementation requires systematic approach
-• Continuous learning and adaptation is necessary
-• Practical application reinforces theoretical knowledge
-
-**Next Steps**: Test your comprehensive understanding with our detailed quiz!`;
-  };
-
-  const generateKinestheticContent = (topic: string) => {
-    return `# Hands-On Guide: ${topic} in ${userProfile.field}
-
-## Let's Get Started! 
-
-**Action Item #1**: Stand up and walk around while reading this!
-
-### Interactive Learning Experience
-
-**Try This Now** (Do each step):
-
-**Step 1** - Physical Warm-up
-- Stretch your hands - you'll be working with ${topic}
-- Look around your space - find 3 objects that relate to ${userProfile.field}
-- Say out loud: "I'm about to master ${topic}!"
-
-**Step 2** - Hands-On Practice
-- BUILD: Create a simple example
-- WRITE: Take notes with your own words  
-- DRAW: Sketch the main concept
-- TEACH: Explain it to an imaginary student
-
-### Real-World Simulation
-
-**Scenario**: You're working on a real ${userProfile.field} project...
-
-**Your Mission** (Act this out):
-1. **Problem**: You encounter a challenge with ${topic}
-2. **Action**: Apply what you're learning step-by-step
-3. **Result**: Measure your success
-
-**Interactive Checklist**
-- [ ] I can demonstrate the main concept
-- [ ] I can solve a practice problem  
-- [ ] I can teach this to someone else
-- [ ] I can apply this in a real situation
-
-### Practice Exercises
-
-**Exercise 1**: Mini-Project (15 minutes)
-Create something small using ${topic} principles
-
-**Exercise 2**: Teaching Moment (5 minutes)  
-Explain ${topic} to a friend, pet, or mirror
-
-**Exercise 3**: Problem-Solving (10 minutes)
-Find a real problem and apply your new knowledge
-
-### Hands-On Assessment Ready?
-The quiz will include practical scenarios where you apply ${topic}!
-
-**Physical Prep**: Stretch your fingers - time to show what you can do!`;
+  // Format the estimated reading time
+  const getReadingTime = () => {
+    const words = content.split(/\s+/).length;
+    const minutes = Math.ceil(words / 200);
+    return `${minutes} min${minutes === 1 ? '' : 's'} read`;
   };
 
   useEffect(() => {
+    // Generate content if none exists
     if (!content) {
       generateContent();
     }
     
-    // Clean up any ongoing speech when component unmounts
+    // Clean up speech on unmount
     return () => {
-      textToSpeech.stop();
-      setIsSpeaking(false);
+      if (isSpeaking) {
+        textToSpeech.stop();
+      }
     };
   }, []);
-  
-  // Stop speech when content changes
-  useEffect(() => {
-    if (isSpeaking) {
-      textToSpeech.stop();
-      setIsSpeaking(false);
-    }
-  }, [content]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-primary" />
-            Learning Content
-          </h2>
-          <div className="flex items-center gap-2 mt-2">
-            <Badge variant="outline">{userProfile.field}</Badge>
-            <Badge variant="secondary">
-              {userProfile.learningStyle.charAt(0).toUpperCase() + userProfile.learningStyle.slice(1)} Style
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-row justify-between items-start space-y-0 pb-2">
+          <div>
+            <CardTitle className="text-xl">{currentTopic || userProfile.field + " Learning"}</CardTitle>
+            <p className="text-muted-foreground text-sm mt-1">
+              Personalized for {userProfile.learningStyle} learning style
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline" className="flex items-center gap-1 whitespace-nowrap">
+              <Clock className="h-3 w-3" /> {getReadingTime()}
+            </Badge>
+            <Badge variant="outline" className="flex items-center gap-1 whitespace-nowrap">
+              <Target className="h-3 w-3" /> Level {userProfile.level}
             </Badge>
           </div>
-        </div>
-        <Button
-          onClick={() => generateContent()}
-          disabled={isGenerating}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
-          New Topic
-        </Button>
-      </div>
-
-      {/* Content Area */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-primary" />
-              {currentTopic || "Loading Topic..."}
-            </CardTitle>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              ~10 min read
-            </div>
-          </div>
         </CardHeader>
-        <CardContent>
-          {isGenerating ? (
-            <div className="text-center py-12">
-              <div className="animate-spin mx-auto mb-4 h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
-              <p className="text-muted-foreground">Generating personalized content for {userProfile.learningStyle} learners...</p>
-            </div>
-          ) : (
-            <Tabs defaultValue="content" className="w-full">
-              <TabsList className="grid grid-cols-2 mb-4">
-                <TabsTrigger value="content" className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Learning Content
-                </TabsTrigger>
-                <TabsTrigger value="chat" className="flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4" />
-                  Ask Questions
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="content" className="mt-0">
-                <div className="prose dark:prose-invert max-w-none overflow-auto max-h-[60vh] custom-scrollbar">
-                  {/* Text-to-speech controls */}
-                  {content && (
-                    <div className="flex items-center gap-2 mb-4 p-2 bg-muted rounded-lg">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          if (isSpeaking) {
-                            textToSpeech.stop();
-                            setIsSpeaking(false);
-                          } else {
-                            // Remove markdown syntax for better speech
-                            const plainText = content.replace(/\*\*/g, '').replace(/\*/g, '').replace(/\n/g, ' ');
-                            textToSpeech.speak(plainText, { rate: 1, pitch: 1 });
-                            setIsSpeaking(true);
-                          }
-                        }}
-                      >
-                        {isSpeaking ? <VolumeX className="h-4 w-4 mr-2" /> : <Volume2 className="h-4 w-4 mr-2" />}
-                        {isSpeaking ? "Stop Audio" : "Listen"}
-                      </Button>
-                      <p className="text-xs text-muted-foreground">
-                        {isSpeaking ? "Click to stop audio" : "Text-to-speech available"}
+        
+        <CardContent className="pt-2">
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="flex items-center gap-1"
+              onClick={handleTextToSpeech}
+            >
+              {isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              {isSpeaking ? "Stop Audio" : "Read Aloud"}
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1"
+              onClick={() => generateContent()}
+              disabled={isGenerating}
+            >
+              <RefreshCw className={`h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
+              {isGenerating ? "Generating..." : "Regenerate"}
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1 ml-auto"
+              onClick={onStartQuiz}
+            >
+              <Play className="h-4 w-4" />
+              Take Quiz
+            </Button>
+          </div>
+
+          {/* Queue Status Indicator */}
+          <QueueStatusIndicator />
+          
+          <Separator className="mb-4" />
+          
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="content" className="flex items-center gap-1">
+                <BookOpen className="h-4 w-4" />
+                <span className={isMobile ? 'hidden' : ''}>Content</span>
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="flex items-center gap-1">
+                <MessageCircle className="h-4 w-4" />
+                <span className={isMobile ? 'hidden' : ''}>Ask Questions</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="content" className="space-y-4">
+              <div className="prose prose-lg max-w-none text-foreground">
+                {(ReactMarkdown as any)({ 
+                  remarkPlugins: [remarkGfm],
+                  rehypePlugins: [rehypeRaw],
+                  components: {
+                    // ChatGPT-style headers (clean, professional)
+                    h1: ({children}: any) => (
+                      <h1 className="text-2xl font-semibold mt-8 mb-6 text-foreground border-b border-border pb-3">
+                        {children}
+                      </h1>
+                    ),
+                    h2: ({children}: any) => (
+                      <h2 className="text-xl font-semibold mt-7 mb-4 text-foreground">
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({children}: any) => (
+                      <h3 className="text-lg font-semibold mt-6 mb-3 text-foreground">
+                        {children}
+                      </h3>
+                    ),
+                    h4: ({children}: any) => (
+                      <h4 className="text-base font-semibold mt-5 mb-2 text-foreground">
+                        {children}
+                      </h4>
+                    ),
+                    
+                    // ChatGPT-style paragraphs
+                    p: ({children}: any) => (
+                      <p className="mb-4 text-foreground leading-relaxed">
+                        {children}
                       </p>
-                    </div>
-                  )}
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw]}
-                    components={{
-                      // Headers with enhanced styling
-                      h1: ({children}) => (
-                        <h1 className="text-2xl font-bold mt-6 mb-4 pb-2 border-b border-border">{children}</h1>
-                      ),
-                      h2: ({children}) => (
-                        <h2 className="text-xl font-semibold mt-5 mb-3 text-primary">{children}</h2>
-                      ),
-                      h3: ({children}) => (
-                        <h3 className="text-lg font-medium mt-4 mb-2">{children}</h3>
-                      ),
-                      
-                      // Table styling
-                      table: ({children}) => (
-                        <div className="my-6 w-full overflow-y-auto">
-                          <table className="min-w-full divide-y divide-border border border-border rounded-md">{children}</table>
-                        </div>
-                      ),
-                      thead: ({children}) => (
-                        <thead className="bg-muted">{children}</thead>
-                      ),
-                      th: ({children}) => (
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{children}</th>
-                      ),
-                      td: ({children}) => (
-                        <td className="px-4 py-3 whitespace-nowrap text-sm">{children}</td>
-                      ),
-                      tr: ({children}) => (
-                        <tr className="border-t border-border">{children}</tr>
-                      ),
-                      
-                      // Enhanced links
-                      a: ({href, children}) => (
-                        <a className="text-primary hover:underline transition-colors" href={href} target="_blank" rel="noopener noreferrer">
-                          {children}
-                        </a>
-                      ),
-                      
-                      // Enhanced code blocks with syntax styling
-                      code: ({className, children, node, ...props}) => {
-                        const match = /language-(\w+)/.exec(className || '');
+                    ),
+                    
+                    // ChatGPT-style lists - clean bullets
+                    ul: ({children}: any) => (
+                      <ul className="mb-4 pl-6 space-y-1">
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({children}: any) => (
+                      <ol className="mb-4 pl-6 space-y-1 list-decimal">
+                        {children}
+                      </ol>
+                    ),
+                    li: ({children}: any) => (
+                      <li className="text-foreground leading-relaxed list-disc">
+                        {children}
+                      </li>
+                    ),
+                    
+                    // ChatGPT-style code
+                    code: ({inline, className, children, ...props}: any) => {
+                      if (inline) {
                         return (
                           <code 
-                            className={`${match ? `language-${match[1]}` : ''} bg-muted px-1.5 py-0.5 rounded text-sm font-mono`}
+                            className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground border"
                             {...props}
                           >
                             {children}
                           </code>
                         );
-                      },
-                      
-                      // Better code block container
-                      pre: ({children}) => (
-                        <pre className="bg-muted p-4 rounded-md my-4 overflow-x-auto border border-border font-mono text-sm">
-                          {children}
-                        </pre>
-                      ),
-                      
-                      // Enhanced blockquotes
-                      blockquote: ({children}) => (
-                        <blockquote className="border-l-4 border-primary pl-4 italic my-4">
-                          {children}
-                        </blockquote>
-                      ),
-                      
-                      // Lists with better spacing
-                      ul: ({children}) => <ul className="space-y-2 my-4 ml-6">{children}</ul>,
-                      ol: ({children}) => <ol className="space-y-2 my-4 ml-6">{children}</ol>,
-                      li: ({children}) => <li className="pl-1">{children}</li>,
-                    }}
-                  >
-                    {content}
-                  </ReactMarkdown>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="chat" className="mt-0">
-                <div className="h-[60vh] flex flex-col">
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/30 rounded-lg mb-4">
-                    {chatMessages.length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground">
-                        <MessageCircle className="h-12 w-12 mb-2 text-muted" />
-                        <h3 className="font-medium text-lg">Ask questions about this topic</h3>
-                        <p className="max-w-xs">
-                          Have questions about {currentTopic} in {userProfile.field}? 
-                          Ask here and get explanations based on the learning content.
-                        </p>
-                      </div>
-                    ) : (
-                      chatMessages.map((message, i) => (
-                        <div 
-                          key={i} 
-                          className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      }
+                      return (
+                        <code 
+                          className={`block bg-muted p-4 rounded-lg font-mono text-sm border overflow-x-auto text-foreground my-3 ${className || ''}`}
+                          {...props}
                         >
-                          <div 
-                            className={`max-w-[80%] rounded-lg p-3 ${
-                              message.role === 'user' 
-                                ? 'bg-primary text-primary-foreground ml-12'
-                                : message.role === 'system'
-                                ? 'bg-destructive/20 text-destructive-foreground'
-                                : 'bg-card border border-border mr-12'
-                            }`}
-                          >
-                            <p className="whitespace-pre-wrap">{message.content}</p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Ask a question about this topic..."
-                      className="w-full p-3 rounded-md border bg-background"
-                      value={userQuestion}
-                      onChange={(e) => setUserQuestion(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !isAskingQuestion) {
-                          submitQuestion();
-                        }
-                      }}
-                    />
-                    <Button 
-                      className="absolute right-1 top-1 bottom-1"
-                      size="sm"
-                      onClick={submitQuestion}
-                      disabled={isAskingQuestion || !userQuestion.trim()}
-                    >
-                      {isAskingQuestion ? (
-                        <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                      ) : (
-                        "Ask"
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          )}
+                          {children}
+                        </code>
+                      );
+                    },
+                    pre: ({children}: any) => (
+                      <pre className="bg-muted p-4 rounded-lg my-4 overflow-x-auto border">
+                        {children}
+                      </pre>
+                    ),
+                    
+                    // ChatGPT-style blockquotes
+                    blockquote: ({children}: any) => (
+                      <blockquote className="border-l-4 border-primary/30 pl-4 py-2 my-4 italic text-foreground/80 bg-muted/30 rounded-r">
+                        {children}
+                      </blockquote>
+                    ),
+                    
+                    // Links
+                    a: ({href, children}: any) => (
+                      <a 
+                        href={href}
+                        className="text-primary hover:underline transition-colors"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {children}
+                      </a>
+                    ),
+                    
+                    // ChatGPT-style tables
+                    table: ({children}: any) => (
+                      <div className="overflow-x-auto my-6">
+                        <table className="w-full border-collapse border border-border rounded">
+                          {children}
+                        </table>
+                      </div>
+                    ),
+                    thead: ({children}: any) => (
+                      <thead className="bg-muted/50">
+                        {children}
+                      </thead>
+                    ),
+                    th: ({children}: any) => (
+                      <th className="border border-border px-4 py-3 text-left font-semibold">
+                        {children}
+                      </th>
+                    ),
+                    td: ({children}: any) => (
+                      <td className="border border-border px-4 py-3">
+                        {children}
+                      </td>
+                    ),
+                    tr: ({children}: any) => (
+                      <tr className="hover:bg-muted/30 transition-colors">
+                        {children}
+                      </tr>
+                    ),
+                    
+                    // ChatGPT-style emphasis
+                    strong: ({children}: any) => (
+                      <strong className="font-semibold text-foreground">
+                        {children}
+                      </strong>
+                    ),
+                    em: ({children}: any) => (
+                      <em className="italic text-foreground/80">
+                        {children}
+                      </em>
+                    ),
+                  },
+                  children: formatContent(content)
+                })}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="chat" className="space-y-4">
+              <ContentChat content={content} title={`Ask about ${currentTopic || userProfile.field}`} />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
-
-      {/* Actions */}
-      {content && !isGenerating && (
-        <div className="flex flex-wrap gap-4 justify-center">
-          <Button onClick={() => generateContent()} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Generate New Content
-          </Button>
-          <Button onClick={onStartQuiz} className="flex items-center gap-2">
-            <Play className="h-4 w-4" />
-            Take Quiz
-          </Button>
-        </div>
-      )}
     </div>
   );
 };
+
+export default ContentViewer;
