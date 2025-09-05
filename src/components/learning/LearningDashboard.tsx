@@ -5,7 +5,7 @@ import { BookOpen, Brain, Trophy, BarChart3 } from "lucide-react";
 import { FieldSelection } from "./FieldSelection";
 import { LearningStyleSelection } from "./LearningStyleSelection";
 import { ContentViewer } from "./ContentViewer";
-import { QuizComponent } from "./QuizComponent";
+import { QuizComponent } from "./QuizComponentNew";
 import { Leaderboard } from "./Leaderboard";
 
 export type LearningStyle = "visual" | "auditory" | "reading" | "kinesthetic";
@@ -59,9 +59,9 @@ const LearningDashboard = () => {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
-            <Brain className="h-8 w-8 text-primary" />
-            AI Learning System
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
+            <Brain className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+            Ndu AI Learning System
           </h1>
           <p className="text-muted-foreground">Personalized learning powered by AI</p>
         </div>
@@ -81,7 +81,7 @@ const LearningDashboard = () => {
         </div>
 
         {/* Navigation */}
-        <div className="flex gap-2 mb-6 overflow-x-auto">
+        <div className="flex flex-wrap gap-2 mb-6 overflow-x-auto justify-center md:justify-start">
           <Button
             variant={currentStep === "field" ? "default" : "outline"}
             size="sm"
@@ -123,8 +123,8 @@ const LearningDashboard = () => {
         </div>
 
         {/* Main Content */}
-        <Card className="min-h-[500px]">
-          <CardContent className="p-6">
+        <Card className="min-h-[500px] overflow-hidden">
+          <CardContent className="p-3 sm:p-6">
             {currentStep === "field" && (
               <FieldSelection onFieldSelect={handleFieldSelect} />
             )}

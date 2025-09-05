@@ -15,7 +15,7 @@ interface QuizComponentProps {
   onQuizComplete: (score: number) => void;
 }
 
-function QuizComponent({ content, userProfile, onQuizComplete }: QuizComponentProps) {
+export const QuizComponent = ({ content, userProfile, onQuizComplete }: QuizComponentProps) => {
   const { toast } = useToast();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -71,15 +71,6 @@ function QuizComponent({ content, userProfile, onQuizComplete }: QuizComponentPr
   // Generate questions on component mount
   useEffect(() => {
     generateQuestions();
-    
-    // Clean up any ongoing speech when component unmounts
-    return () => {
-      // Import is used here to avoid circular dependencies
-      import('@/utils/textToSpeech').then(module => {
-        const { textToSpeech } = module;
-        textToSpeech.stop();
-      });
-    };
   }, []);
 
   const formatTime = (seconds: number) => {
@@ -243,17 +234,17 @@ function QuizComponent({ content, userProfile, onQuizComplete }: QuizComponentPr
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Quiz Time!</h2>
-          <div className="flex flex-wrap items-center gap-2 mt-2">
+          <h2 className="text-2xl font-bold text-foreground">Quiz Time!</h2>
+          <div className="flex items-center gap-2 mt-2">
             <Badge variant="outline">{userProfile.field}</Badge>
             <Badge variant="secondary">
               Question {currentQuestionIndex + 1} of {questions.length}
             </Badge>
           </div>
         </div>
-        <div className="text-right self-end sm:self-auto">
+        <div className="text-right">
           <div className="flex items-center gap-2 text-lg font-mono">
             <Clock className="h-5 w-5 text-primary" />
             {formatTime(timeLeft)}
@@ -353,8 +344,4 @@ function QuizComponent({ content, userProfile, onQuizComplete }: QuizComponentPr
       </div>
     </div>
   );
-}
-
-// Make both default and named exports available
-export default QuizComponent;
-export { QuizComponent };
+};

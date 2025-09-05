@@ -1,21 +1,11 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Trophy, Medal, Award, Star, BookOpen, TrendingUp } from "lucide-react";
 import { UserProfile } from "./LearningDashboard";
-
-// Mock leaderboard data
-const mockLeaderboardData = [
-  { rank: 1, name: "Alex Chen", score: 2450, level: 25, field: "Web Development", streak: 12 },
-  { rank: 2, name: "Sarah Johnson", score: 2380, level: 24, field: "Data Science", streak: 8 },
-  { rank: 3, name: "Mike Rodriguez", score: 2250, level: 23, field: "Digital Marketing", streak: 15 },
-  { rank: 4, name: "Emma Wilson", score: 2100, level: 21, field: "Graphic Design", streak: 6 },
-  { rank: 5, name: "You", score: 0, level: 1, field: "", streak: 1 }, // User placeholder
-  { rank: 6, name: "David Kim", score: 1980, level: 20, field: "Business Strategy", streak: 9 },
-  { rank: 7, name: "Lisa Zhang", score: 1850, level: 19, field: "Machine Learning", streak: 4 },
-  { rank: 8, name: "James Miller", score: 1720, level: 18, field: "Web Development", streak: 7 },
-];
+import { getLeaderboardWithUserVisible, getUserAchievements } from "@/services/leaderboard";
 
 interface LeaderboardProps {
   userProfile: UserProfile;
@@ -23,14 +13,17 @@ interface LeaderboardProps {
 }
 
 export const Leaderboard = ({ userProfile, onNewLesson }: LeaderboardProps) => {
-  // Update user data in mock leaderboard
-  const leaderboardData = mockLeaderboardData.map(user => 
-    user.name === "You" 
-      ? { ...user, score: userProfile.score, level: userProfile.level, field: userProfile.field }
-      : user
-  ).sort((a, b) => b.score - a.score).map((user, index) => ({ ...user, rank: index + 1 }));
+  const [leaderboardData, setLeaderboardData] = useState(getLeaderboardWithUserVisible(userProfile));
+  const [achievements, setAchievements] = useState(getUserAchievements(userProfile));
 
-  const userRank = leaderboardData.find(user => user.name === "You")?.rank || 0;
+  // Update leaderboard when userProfile changes
+  useEffect(() => {
+    setLeaderboardData(getLeaderboardWithUserVisible(userProfile));
+    setAchievements(getUserAchievements(userProfile));
+  }, [userProfile]);
+
+  const currentUser = leaderboardData.find(user => user.isCurrentUser);
+  const userRank = currentUser?.rank || 0;
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -97,23 +90,28 @@ export const Leaderboard = ({ userProfile, onNewLesson }: LeaderboardProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {leaderboardData.slice(0, 10).map((user) => (
+          {leaderboardData.map((user, index) => (
             <div
-              key={user.rank}
+              key={user.id}
               className={`flex items-center gap-4 p-3 rounded-lg transition-colors ${
-                user.name === "You" 
+                user.isCurrentUser 
                   ? "bg-primary/10 border border-primary/20" 
                   : "hover:bg-muted/50"
+              } ${
+                // If this is not a top entry and not the user's entry, add a separator
+                index > 0 && index === leaderboardData.length - 3 && !user.isCurrentUser
+                  ? "mt-3 border-t pt-3"
+                  : ""
               }`}
             >
               {/* Rank Icon */}
               <div className="flex-shrink-0">
-                {getRankIcon(user.rank)}
+                {getRankIcon(user.rank!)}
               </div>
 
               {/* Avatar */}
               <Avatar className="h-10 w-10">
-                <AvatarFallback className={user.name === "You" ? "bg-primary text-primary-foreground" : ""}>
+                <AvatarFallback className={user.isCurrentUser ? "bg-primary text-primary-foreground" : ""}>
                   {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
@@ -121,13 +119,13 @@ export const Leaderboard = ({ userProfile, onNewLesson }: LeaderboardProps) => {
               {/* User Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className={`font-medium ${user.name === "You" ? "text-primary" : "text-foreground"}`}>
+                  <span className={`font-medium ${user.isCurrentUser ? "text-primary" : "text-foreground"}`}>
                     {user.name}
                   </span>
-                  {user.name === "You" && <Badge variant="default">You</Badge>}
+                  {user.isCurrentUser && <Badge variant="default">You</Badge>}
                 </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>{user.field}</span>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <span>{user.field || "Unknown"}</span>
                   <span>•</span>
                   <span>Level {user.level}</span>
                   <span>•</span>
@@ -155,35 +153,54 @@ export const Leaderboard = ({ userProfile, onNewLesson }: LeaderboardProps) => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="flex items-center gap-3 p-3 bg-success/10 rounded-lg border border-success/20">
-              <div className="p-2 bg-success/20 rounded-full">
-                <BookOpen className="h-4 w-4 text-success" />
-              </div>
-              <div>
-                <div className="font-medium text-success">First Quiz!</div>
-                <div className="text-sm text-muted-foreground">Completed your first quiz</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-muted opacity-50">
-              <div className="p-2 bg-muted rounded-full">
-                <Star className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div>
-                <div className="font-medium text-muted-foreground">Perfect Score</div>
-                <div className="text-sm text-muted-foreground">Score 100% on a quiz</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-muted opacity-50">
-              <div className="p-2 bg-muted rounded-full">
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div>
-                <div className="font-medium text-muted-foreground">Level Up</div>
-                <div className="text-sm text-muted-foreground">Reach level 5</div>
-              </div>
-            </div>
+            {achievements.map(achievement => {
+              // Determine which icon to use
+              let IconComponent;
+              switch (achievement.icon) {
+                case "BookOpen":
+                  IconComponent = BookOpen;
+                  break;
+                case "Star":
+                  IconComponent = Star;
+                  break;
+                case "TrendingUp":
+                  IconComponent = TrendingUp;
+                  break;
+                default:
+                  IconComponent = Award;
+              }
+              
+              return (
+                <div 
+                  key={achievement.id}
+                  className={`flex items-center gap-3 p-3 rounded-lg border ${
+                    achievement.isUnlocked 
+                      ? 'bg-success/10 border-success/20' 
+                      : 'bg-muted/50 border-muted opacity-50'
+                  }`}
+                >
+                  <div className={`p-2 rounded-full ${
+                    achievement.isUnlocked ? 'bg-success/20' : 'bg-muted'
+                  }`}>
+                    <IconComponent 
+                      className={`h-4 w-4 ${
+                        achievement.isUnlocked ? 'text-success' : 'text-muted-foreground'
+                      }`} 
+                    />
+                  </div>
+                  <div>
+                    <div className={`font-medium ${
+                      achievement.isUnlocked ? 'text-success' : 'text-muted-foreground'
+                    }`}>
+                      {achievement.title}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {achievement.description}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>

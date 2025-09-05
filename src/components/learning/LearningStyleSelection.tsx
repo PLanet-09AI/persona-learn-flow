@@ -47,11 +47,11 @@ interface LearningStyleSelectionProps {
 export const LearningStyleSelection = ({ selectedField, onStyleSelect }: LearningStyleSelectionProps) => {
   return (
     <div className="space-y-6">
-      <div className="text-center">
+      <div className="flex flex-col items-center gap-2">
         <h2 className="text-2xl font-bold text-foreground mb-2">Choose Your Learning Style</h2>
-        <p className="text-muted-foreground">
+        <div className="text-muted-foreground">
           How would you like to learn about <Badge variant="outline">{selectedField}</Badge>?
-        </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
