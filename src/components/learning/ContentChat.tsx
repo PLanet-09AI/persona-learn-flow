@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Send, Loader2, MessageCircle, BookOpen, ListChecks, Settings } from "lucide-react";
+import { Send, Loader2, MessageCircle, BookOpen, ListChecks, Settings, History, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -12,14 +12,11 @@ import { generateLearningOutcomes } from "@/utils/markdownUtils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "@/hooks/use-auth";
+import { ChatHistory } from "./ChatHistory";
+import { chatHistoryService, Conversation } from "@/services/chatHistory";
+import { ChatMessage } from "@/types/chat";
 import "../../styles/markdown-enhanced.css";
 import "../../styles/markdown-premium.css";
-
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
 
 interface ContentChatProps {
   content: string;
@@ -64,6 +61,11 @@ Make every response visually engaging and easy to scan, like modern educational 
   const [showLearningOutcomes, setShowLearningOutcomes] = useState<boolean>(false);
   const { user } = useAuth(); // Get user for tracking
   
+  // Chat history state
+  const [showHistory, setShowHistory] = useState<boolean>(false);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  
   // Scroll to bottom of messages when new ones are added
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -74,6 +76,25 @@ Make every response visually engaging and easy to scan, like modern educational 
       scrollToBottom();
     }
   }, [messages, scrollToBottom]);
+
+  // Save conversation whenever messages change (with debouncing)
+  useEffect(() => {
+    if (messages.length > 0 && user) {
+      const timeoutId = setTimeout(() => {
+        saveConversation(messages);
+      }, 1000); // Debounce to avoid too frequent saves
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages, user]);
+
+  // Load conversations when user changes
+  useEffect(() => {
+    if (user) {
+      const userConversations = chatHistoryService.getUserConversations(user.id);
+      setConversations(userConversations);
+    }
+  }, [user]);
 
   // Handle learning outcomes request
   const handleLearningOutcomesRequest = () => {
@@ -106,7 +127,50 @@ These learning outcomes are designed to measure your understanding and mastery o
       timestamp: new Date()
     };
     
-    setMessages(prev => [...prev, userMessage, aiMessage]);
+    const newMessages = [...messages, userMessage, aiMessage];
+    setMessages(newMessages);
+    setQuestion('');
+  };
+
+  // Save conversation to history
+  const saveConversation = (updatedMessages: ChatMessage[]) => {
+    if (!user || updatedMessages.length === 0) return;
+
+    const conversationId = currentConversationId || chatHistoryService.generateConversationId();
+    const conversationTitle = currentConversationId ? 
+      conversations.find(c => c.id === conversationId)?.title ||
+      chatHistoryService.generateConversationTitle(updatedMessages[0].content) :
+      chatHistoryService.generateConversationTitle(updatedMessages[0].content);
+
+    const conversation: Conversation = {
+      id: conversationId,
+      title: conversationTitle,
+      topic: topic || title || 'General Discussion',
+      messages: updatedMessages,
+      createdAt: currentConversationId ? 
+        conversations.find(c => c.id === conversationId)?.createdAt || new Date() : 
+        new Date(),
+      updatedAt: new Date(),
+      userId: user.id
+    };
+
+    chatHistoryService.saveConversation(conversation);
+    
+    if (!currentConversationId) {
+      setCurrentConversationId(conversationId);
+    }
+  };
+
+  // Handle selecting a conversation from history
+  const handleSelectConversation = (conversation: Conversation) => {
+    setMessages(conversation.messages);
+    setCurrentConversationId(conversation.id);
+  };
+
+  // Handle starting a new conversation
+  const handleNewConversation = () => {
+    setMessages([]);
+    setCurrentConversationId(null);
     setQuestion('');
   };
 
@@ -195,10 +259,31 @@ These learning outcomes are designed to measure your understanding and mastery o
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-lg">{title}</CardTitle>
-      </CardHeader>
+    <div className="flex w-full gap-4">
+      <Card className="flex-1">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <CardTitle className="text-lg">{title}</CardTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleNewConversation}
+              className="h-8 w-8"
+              title="New Conversation"
+            >
+              <MessageCircle className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowHistory(!showHistory)}
+              className="h-8 w-8"
+              title={showHistory ? "Hide History" : "Show History"}
+            >
+              <History className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
       <CardContent className="space-y-4">
         <div className="h-[400px] overflow-y-auto space-y-4 mb-4 p-2 pr-1">
           {messages.length === 0 ? (
@@ -552,6 +637,16 @@ These learning outcomes are designed to measure your understanding and mastery o
         </div>
       </CardContent>
     </Card>
+    
+    {/* Chat History Panel */}
+    {showHistory && (
+      <ChatHistory
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        onSelectConversation={handleSelectConversation}
+      />
+    )}
+  </div>
   );
 };
 

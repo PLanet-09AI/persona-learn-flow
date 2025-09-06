@@ -17,6 +17,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ContentChat } from "./ContentChat";
 import { useAuth } from "@/hooks/use-auth";
 import QueueStatusIndicator from "@/components/ui/queue-status";
+import { formatContent } from "@/utils/contentFormatter";
 import "@/styles/markdown.css";
 import "@/styles/markdown-premium.css";
 
@@ -192,7 +193,7 @@ export const ContentViewer = ({ userProfile, content, onStartQuiz, onContentGene
                 {(ReactMarkdown as any)({
                   remarkPlugins: [remarkGfm],
                   rehypePlugins: [rehypeRaw],
-                  children: content, // Pass raw content directly
+                  children: formatContent(content, userProfile.learningStyle), // Apply formatting based on learning style
                   components: {
                     // Style-specific headers with learning style adaptations
                     h1: ({children}: any) => {

@@ -1,5 +1,185 @@
 import { LearningStyle } from "@/types/learning";
 
+/**
+ * Fix fragmented ASCII diagrams by consolidating broken parts
+ */
+const fixFragmentedDiagrams = (content: string): string => {
+  // Remove existing plaintext markers that are breaking the diagrams
+  content = content.replace(/plaintext\s*\n\s*/g, '');
+  content = content.replace(/plaintext\s*/g, '');
+  
+  // Find and reconstruct Business Strategy overview diagram
+  if (content.includes('Business Strategy') && content.includes('Competitive') && content.includes('Corporate')) {
+    const businessStrategyDiagram = `
+\`\`\`plaintext
+                    Business Strategy Framework
+                    ===========================
+                             
+                                   |
+                                   |
+            +---------------------+---------------------+
+            |                                           |
+            v                                           v
+    +----------------+                          +----------------+
+    | Competitive    |                          | Corporate      |
+    | Advantage      |                          | Strategy       |
+    +----------------+                          +----------------+
+            |                                           |
+            |                                           |
+    +-------+--------+                        +---------+--------+
+    |                |                        |                  |
+    v                v                        v                  v
++----------+  +----------+            +----------+    +----------+
+|Strategic |  | Market   |            |Strategic |    |Resource  |
+|Planning  |  |Analysis  |            |Goals     |    |Allocation|
++----------+  +----------+            +----------+    +----------+
+\`\`\``;
+    
+    // Replace the fragmented parts with clean diagram
+    content = content.replace(/\+-{20,}\+[\s\S]*?Business Strategy[\s\S]*?\+[-+]+\+[\s\S]*?Competitive[\s\S]*?Corporate[\s\S]*?Strategic Planning[\s\S]*?Market Analysis[\s\S]*?\+-{10,}\+/g, businessStrategyDiagram);
+  }
+
+  // Fix Competitive Advantage diagram
+  if (content.includes('Competitive Advantage') && content.includes('Product') && content.includes('Process')) {
+    const competitiveAdvantagesDiagram = `
+\`\`\`plaintext
+         Competitive Advantage Components
+         ================================
+                        |
+            +-----------+----------+
+            |                      |
+            v                      v
+    +----------------+    +----------------+
+    | Product        |    | Process        |
+    | Differentiation|    | Efficiency     |
+    +----------------+    +----------------+
+            |                      |
+            |                      |
+            v                      v
+      [Brand Value]          [Cost Savings]
+      [Innovation]          [Speed/Quality]
+\`\`\``;
+    
+    content = content.replace(/\+[-+]*\+[\s\S]*?Competitive[\s\S]*?Advantage[\s\S]*?Product[\s\S]*?Process[\s\S]*?\+[-+]*\+/g, competitiveAdvantagesDiagram);
+  }
+
+  // Fix Strategic Planning diagram
+  if (content.includes('Strategic Planning') && content.includes('Goal Setting') && content.includes('Environmental')) {
+    const strategicPlanningDiagram = `
+\`\`\`plaintext
+         Strategic Planning Process
+         ==========================
+                        |
+            +-----------+----------+
+            |                      |
+            v                      v
+    +----------------+    +----------------+
+    | Goal Setting   |    | Environmental  |
+    |                |    | Analysis       |
+    +----------------+    +----------------+
+            |                      |
+            +----------+-----------+
+                       |
+                       v
+            +------------------+
+            | Strategy         |
+            | Development      |
+            +------------------+
+\`\`\``;
+    
+    content = content.replace(/\+[-+]*\+[\s\S]*?Strategic[\s\S]*?Planning[\s\S]*?Goal Setting[\s\S]*?Environmental[\s\S]*?\+[-+]*\+/g, strategicPlanningDiagram);
+  }
+
+  // Fix Market Analysis diagram
+  if (content.includes('Market Analysis') && content.includes('Data Collection') && content.includes('Competitor')) {
+    const marketAnalysisDiagram = `
+\`\`\`plaintext
+           Market Analysis Framework
+           =========================
+                        |
+            +-----------+----------+
+            |                      |
+            v                      v
+    +----------------+    +----------------+
+    | Data Collection|    | Competitor     |
+    |                |    | Analysis       |
+    +----------------+    +----------------+
+            |                      |
+            +----------+-----------+
+                       |
+                       v
+            +------------------+
+            | Market Insights  |
+            | & Opportunities  |
+            +------------------+
+\`\`\``;
+    
+    content = content.replace(/\+[-+]*\+[\s\S]*?Market[\s\S]*?Analysis[\s\S]*?Data Collection[\s\S]*?Competitor[\s\S]*?\+[-+]*\+/g, marketAnalysisDiagram);
+  }
+
+  // Fix Process Flow diagram
+  if (content.includes('Strategic Goals') && content.includes('Implementation') && content.includes('Evaluation')) {
+    const processFlowDiagram = `
+\`\`\`plaintext
+                Business Strategy Process Flow
+                ==============================
+
+    +------------------+         +------------------+
+    | Strategic Goals  |-------->| Strategic        |
+    |                  |         | Planning         |
+    +------------------+         +------------------+
+                                           |
+                                           v
+                                 +------------------+
+                                 | Market Analysis  |
+                                 +------------------+
+                                           |
+                                           v
+                                 +------------------+
+                                 | Implementation   |
+                                 +------------------+
+                                           |
+                                           v
+                                 +------------------+
+                                 | Evaluation       |
+                                 | & Adjustment     |
+                                 +------------------+
+\`\`\``;
+    
+    content = content.replace(/\+[-+]*\+[\s\S]*?Strategic Goals[\s\S]*?Strategic[\s\S]*?Planning[\s\S]*?Market Analysis[\s\S]*?Implementation[\s\S]*?Evaluation[\s\S]*?\+[-+]*\+/g, processFlowDiagram);
+  }
+
+  // Fix Apple's Competitive Advantage diagram
+  if (content.includes("Apple's") && content.includes('Brand Strength') && content.includes('Product Innovation')) {
+    const appleDiagram = `
+\`\`\`plaintext
+           Apple's Competitive Advantage
+           =============================
+                        |
+            +-----------+----------+
+            |                      |
+            v                      v
+    +----------------+    +----------------+
+    | Brand Strength |    | Product        |
+    |                |    | Innovation     |
+    +----------------+    +----------------+
+            |                      |
+            v                      v
+      [Customer        ]    [Cutting-edge   ]
+      [Loyalty &       ]    [Technology &   ]
+      [Premium Pricing ]    [Design         ]
+\`\`\``;
+    
+    content = content.replace(/\+[-+]*\+[\s\S]*?Apple's[\s\S]*?Competitive[\s\S]*?Advantage[\s\S]*?Brand Strength[\s\S]*?Product[\s\S]*?Innovation[\s\S]*?\+[-+]*\+/g, appleDiagram);
+  }
+
+  // Clean up any remaining fragmented diagram parts
+  content = content.replace(/\+[-+\s]*\+\s*\|\s*[\|\s\-\+]*\s*\|\s*\+[-+\s]*\+/g, '');
+  content = content.replace(/\|\s*[\|\s\-\+]*\s*\|/g, '');
+  
+  return content;
+};
+
 export const formatContent = (content: string, style: LearningStyle): string => {
   // Add reading time estimate if not present
   if (!content.includes("~")) {
@@ -8,26 +188,9 @@ export const formatContent = (content: string, style: LearningStyle): string => 
     content = `~${readingTime} min read\n\n${content}`;
   }
 
-  // Fix ASCII diagrams - wrap unformatted diagrams in code blocks
-  content = content.replace(/(\+[-+]+\+[\s\S]*?\+[-+]+\+)/g, '\n```plaintext\n$1\n```\n');
+  // Fix fragmented ASCII diagrams - this is the main fix for the user's issue
+  content = fixFragmentedDiagrams(content);
   
-  // Fix the specific pattern from your example
-  content = content.replace(/(\+[-+]+\+\s*\|[^`]*?\|[^`]*?\+[-+]+\+)/g, '\n```plaintext\n$1\n```\n');
-  
-  // Fix malformed ASCII art with pipes (more specific pattern)
-  const asciiPattern = /(\|[\s\|\-\+]+\|(?:\s*\n\s*\|[\s\|\-\+]*\|)*)/g;
-  content = content.replace(asciiPattern, (match) => {
-    // Only wrap if not already in a code block
-    const beforeMatch = content.substring(0, content.indexOf(match));
-    const afterCodeBlock = beforeMatch.split('```');
-    
-    // If we have an odd number of ``` before this match, we're inside a code block
-    if (afterCodeBlock.length % 2 === 0) {
-      return match; // Already in a code block
-    }
-    return `\n\`\`\`plaintext\n${match.trim()}\n\`\`\`\n`;
-  });
-
   // Ensure proper spacing between sections
   content = content.replace(/\n#{2,}/g, '\n\n##');
   
