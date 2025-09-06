@@ -7,6 +7,7 @@ import { LearningStyleSelection } from "./LearningStyleSelection";
 import { ContentViewer } from "./ContentViewer";
 import { QuizComponent } from "./QuizComponentNew";
 import { Leaderboard } from "./Leaderboard";
+import { UserMenu } from "@/components/ui/user-menu";
 
 export type LearningStyle = "visual" | "auditory" | "reading" | "kinesthetic";
 
@@ -59,12 +60,20 @@ const LearningDashboard = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
-            <Brain className="h-6 w-6 md:h-8 md:w-8 text-primary" />
-            Ndu AI Learning System
-          </h1>
-          <p className="text-muted-foreground">Personalized learning powered by AI</p>
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex-1"></div>
+            <div className="text-center">
+              <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
+                <Brain className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+                Ndu AI Learning System
+              </h1>
+              <p className="text-muted-foreground">Personalized learning powered by AI</p>
+            </div>
+            <div className="flex-1 flex justify-end">
+              <UserMenu />
+            </div>
+          </div>
         </div>
 
         {/* Progress Bar */}

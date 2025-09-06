@@ -8,7 +8,7 @@ import { openRouterService } from "@/services/openrouter";
 import { ModelSelector } from "../ui/model-selector";
 import { PromptEditor } from "../ui/prompt-editor";
 import { useChatCache } from "../../hooks/use-chat-cache";
-import { formatContent, generateLearningOutcomes } from "@/utils/markdownUtils";
+import { generateLearningOutcomes } from "@/utils/markdownUtils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "@/hooks/use-auth";
@@ -365,7 +365,7 @@ These learning outcomes are designed to measure your understanding and mastery o
                             </a>
                           ),
                         },
-                        children: formatContent(message.content)
+                        children: message.content
                       })}
                     </div>
                   )}
@@ -475,7 +475,7 @@ These learning outcomes are designed to measure your understanding and mastery o
                         </a>
                       ),
                     },
-                    children: formatContent(streamingContent)
+                    children: streamingContent
                   })}
                 </div>
                 <div className="mt-2 flex items-center gap-1">
