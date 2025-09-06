@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/use-toast";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
-import { formatContent } from "@/utils/markdownUtils";
+import { cleanMarkdownForSpeech } from "@/utils/cleanMarkdown";
 import { textToSpeech } from "@/utils/textToSpeech";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ContentChat } from "./ContentChat";
@@ -70,8 +70,10 @@ export const ContentViewer = ({ userProfile, content, onStartQuiz, onContentGene
       textToSpeech.stop();
       setIsSpeaking(false);
     } else {
-      const plainText = content.replace(/[#*_~`]/g, '');
-      textToSpeech.speak(plainText, {
+      // Use the comprehensive markdown cleaning utility
+      const cleanText = cleanMarkdownForSpeech(content);
+      
+      textToSpeech.speak(cleanText, {
         onEnd: () => setIsSpeaking(false)
       });
       setIsSpeaking(true);
@@ -186,31 +188,62 @@ export const ContentViewer = ({ userProfile, content, onStartQuiz, onContentGene
             </TabsList>
             
             <TabsContent value="content" className="space-y-4">
-              <div className="prose prose-lg max-w-none text-foreground">
-                {(ReactMarkdown as any)({ 
+              <div className={`prose prose-lg max-w-none text-foreground ${userProfile.learningStyle}-style`}>
+                {(ReactMarkdown as any)({
                   remarkPlugins: [remarkGfm],
                   rehypePlugins: [rehypeRaw],
+                  children: content, // Pass raw content directly
                   components: {
-                    // ChatGPT-style headers (clean, professional)
-                    h1: ({children}: any) => (
-                      <h1 className="text-2xl font-semibold mt-8 mb-6 text-foreground border-b border-border pb-3">
-                        {children}
-                      </h1>
-                    ),
-                    h2: ({children}: any) => (
-                      <h2 className="text-xl font-semibold mt-7 mb-4 text-foreground">
-                        {children}
-                      </h2>
-                    ),
+                    // Style-specific headers with learning style adaptations
+                    h1: ({children}: any) => {
+                      const baseClasses = "text-2xl font-bold mt-8 mb-6 text-foreground border-b border-border pb-3";
+                      const styleClasses = {
+                        visual: "bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-4 rounded-lg border-l-4 border-blue-500",
+                        auditory: "bg-gradient-to-r from-green-500/10 to-teal-500/10 p-4 rounded-lg border-l-4 border-green-500",
+                        reading: "bg-gradient-to-r from-slate-500/10 to-gray-500/10 p-4 rounded-lg border-l-4 border-slate-500",
+                        kinesthetic: "bg-gradient-to-r from-orange-500/10 to-red-500/10 p-4 rounded-lg border-l-4 border-orange-500"
+                      };
+                      
+                      return (
+                        <h1 className={`${baseClasses} ${styleClasses[userProfile.learningStyle as keyof typeof styleClasses] || ""}`}>
+                          {children}
+                        </h1>
+                      );
+                    },
+                    h2: ({children}: any) => {
+                      const styleEmojis = {
+                        visual: "👁️",
+                        auditory: "👂",
+                        reading: "📖",
+                        kinesthetic: "🤲"
+                      };
+                      const emoji = styleEmojis[userProfile.learningStyle as keyof typeof styleEmojis] || "•";
+                      
+                      return (
+                        <h2 className="text-xl font-bold mt-7 mb-4 text-foreground flex items-center gap-2">
+                          <span className="text-2xl">{emoji}</span> {children}
+                        </h2>
+                      );
+                    },
                     h3: ({children}: any) => (
-                      <h3 className="text-lg font-semibold mt-6 mb-3 text-foreground">
+                      <h3 className="text-lg font-bold mt-6 mb-3 text-foreground">
                         {children}
                       </h3>
                     ),
                     h4: ({children}: any) => (
-                      <h4 className="text-base font-semibold mt-5 mb-2 text-foreground">
+                      <h4 className="text-base font-bold mt-5 mb-2 text-foreground">
                         {children}
                       </h4>
+                    ),
+                    h5: ({children}: any) => (
+                      <h5 className="text-sm font-bold mt-4 mb-2 text-foreground">
+                        {children}
+                      </h5>
+                    ),
+                    h6: ({children}: any) => (
+                      <h6 className="text-xs font-bold mt-3 mb-1 text-foreground">
+                        {children}
+                      </h6>
                     ),
                     
                     // ChatGPT-style paragraphs
@@ -220,22 +253,61 @@ export const ContentViewer = ({ userProfile, content, onStartQuiz, onContentGene
                       </p>
                     ),
                     
-                    // ChatGPT-style lists - clean bullets
-                    ul: ({children}: any) => (
-                      <ul className="mb-4 pl-6 space-y-1">
-                        {children}
-                      </ul>
-                    ),
-                    ol: ({children}: any) => (
-                      <ol className="mb-4 pl-6 space-y-1 list-decimal">
-                        {children}
-                      </ol>
-                    ),
-                    li: ({children}: any) => (
-                      <li className="text-foreground leading-relaxed list-disc">
-                        {children}
-                      </li>
-                    ),
+                    // Style-specific lists with enhanced formatting
+                    ul: ({children}: any) => {
+                      const styleClasses = {
+                        visual: "mb-4 pl-6 space-y-2 border-l-2 border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/20 p-3 rounded-r",
+                        auditory: "mb-4 pl-6 space-y-2 border-l-2 border-green-200 dark:border-green-800 bg-green-50/30 dark:bg-green-950/20 p-3 rounded-r", 
+                        reading: "mb-4 pl-6 space-y-1",
+                        kinesthetic: "mb-4 pl-6 space-y-2 border-l-2 border-orange-200 dark:border-orange-800 bg-orange-50/30 dark:bg-orange-950/20 p-3 rounded-r"
+                      };
+                      
+                      return (
+                        <ul className={styleClasses[userProfile.learningStyle as keyof typeof styleClasses] || styleClasses.reading}>
+                          {children}
+                        </ul>
+                      );
+                    },
+                    ol: ({children}: any) => {
+                      const styleClasses = {
+                        visual: "mb-4 pl-6 space-y-2 list-decimal border-l-2 border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/20 p-3 rounded-r",
+                        auditory: "mb-4 pl-6 space-y-2 list-decimal border-l-2 border-green-200 dark:border-green-800 bg-green-50/30 dark:bg-green-950/20 p-3 rounded-r",
+                        reading: "mb-4 pl-6 space-y-1 list-decimal",
+                        kinesthetic: "mb-4 pl-6 space-y-2 list-decimal border-l-2 border-orange-200 dark:border-orange-800 bg-orange-50/30 dark:bg-orange-950/20 p-3 rounded-r"
+                      };
+                      
+                      return (
+                        <ol className={styleClasses[userProfile.learningStyle as keyof typeof styleClasses] || styleClasses.reading}>
+                          {children}
+                        </ol>
+                      );
+                    },
+                    li: ({children}: any) => {
+                      const styleMarkers = {
+                        visual: "▶️",
+                        auditory: "🔊", 
+                        reading: "•",
+                        kinesthetic: "👉"
+                      };
+                      
+                      // Check if this is a checkbox item for kinesthetic learners
+                      const isCheckbox = typeof children === 'string' && (children.includes('☐') || children.includes('☑') || children.includes('□') || children.includes('✅'));
+                      
+                      if (userProfile.learningStyle === 'kinesthetic' && isCheckbox) {
+                        return (
+                          <li className="text-foreground leading-relaxed flex items-center gap-2 p-1 hover:bg-orange-100 dark:hover:bg-orange-900/20 rounded transition-colors">
+                            {children}
+                          </li>
+                        );
+                      }
+                      
+                      return (
+                        <li className="text-foreground leading-relaxed flex items-start gap-2">
+                          <span className="mt-1 text-sm">{styleMarkers[userProfile.learningStyle as keyof typeof styleMarkers] || "•"}</span>
+                          <span>{children}</span>
+                        </li>
+                      );
+                    },
                     
                     // ChatGPT-style code
                     code: ({inline, className, children, ...props}: any) => {
@@ -264,12 +336,49 @@ export const ContentViewer = ({ userProfile, content, onStartQuiz, onContentGene
                       </pre>
                     ),
                     
-                    // ChatGPT-style blockquotes
-                    blockquote: ({children}: any) => (
-                      <blockquote className="border-l-4 border-primary/30 pl-4 py-2 my-4 italic text-foreground/80 bg-muted/30 rounded-r">
-                        {children}
-                      </blockquote>
-                    ),
+                    // Style-specific blockquotes for different learning approaches
+                    blockquote: ({children}: any) => {
+                      const styleConfigs = {
+                        visual: {
+                          border: "border-l-4 border-blue-500",
+                          bg: "bg-blue-50 dark:bg-blue-950/30",
+                          icon: "👁️‍🗨️",
+                          label: "Visual Insight:"
+                        },
+                        auditory: {
+                          border: "border-l-4 border-green-500", 
+                          bg: "bg-green-50 dark:bg-green-950/30",
+                          icon: "🗣️",
+                          label: "Say it out loud:"
+                        },
+                        reading: {
+                          border: "border-l-4 border-slate-500",
+                          bg: "bg-slate-50 dark:bg-slate-950/30", 
+                          icon: "📝",
+                          label: "Key Note:"
+                        },
+                        kinesthetic: {
+                          border: "border-l-4 border-orange-500",
+                          bg: "bg-orange-50 dark:bg-orange-950/30",
+                          icon: "🤲",
+                          label: "Try this:"
+                        }
+                      };
+                      
+                      const config = styleConfigs[userProfile.learningStyle as keyof typeof styleConfigs] || styleConfigs.reading;
+                      
+                      return (
+                        <blockquote className={`${config.border} ${config.bg} pl-4 py-3 my-4 rounded-r-lg`}>
+                          <div className="flex items-start gap-2 text-foreground">
+                            <span className="text-lg">{config.icon}</span>
+                            <div>
+                              <strong className="text-sm font-semibold block mb-1">{config.label}</strong>
+                              {children}
+                            </div>
+                          </div>
+                        </blockquote>
+                      );
+                    },
                     
                     // Links
                     a: ({href, children}: any) => (
@@ -323,8 +432,7 @@ export const ContentViewer = ({ userProfile, content, onStartQuiz, onContentGene
                         {children}
                       </em>
                     ),
-                  },
-                  children: formatContent(content)
+                  }
                 })}
               </div>
             </TabsContent>
