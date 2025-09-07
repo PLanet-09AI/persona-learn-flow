@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Brain, Trophy, BarChart3 } from "lucide-react";
+import { BookOpen, Brain, Trophy, BarChart3, User, FileText, CreditCard } from "lucide-react";
 import { FieldSelection } from "./FieldSelection";
 import { LearningStyleSelection } from "./LearningStyleSelection";
 import { ContentViewer } from "./ContentViewer";
@@ -20,6 +21,7 @@ export interface UserProfile {
 }
 
 const LearningDashboard = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<"field" | "style" | "learning" | "quiz" | "leaderboard">("field");
   const [userProfile, setUserProfile] = useState<UserProfile>({
     field: "",
@@ -129,6 +131,38 @@ const LearningDashboard = () => {
           >
             <Trophy className="h-4 w-4" />
             Leaderboard
+          </Button>
+          
+          {/* Divider */}
+          <div className="h-8 w-px bg-border mx-2"></div>
+          
+          {/* Additional Features */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/profile')}
+            className="flex items-center gap-2"
+          >
+            <User className="h-4 w-4" />
+            Profile
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/cv-generator')}
+            className="flex items-center gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            CV Generator
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/subscription')}
+            className="flex items-center gap-2"
+          >
+            <CreditCard className="h-4 w-4" />
+            Subscription
           </Button>
         </div>
 
