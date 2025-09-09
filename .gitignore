@@ -28,3 +28,6 @@ config/firebase-service-account.json
 *.njsproj
 *.sln
 *.sw?
+
+# Local Netlify folder
+.netlify
