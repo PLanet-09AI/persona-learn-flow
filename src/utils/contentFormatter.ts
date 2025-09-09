@@ -181,6 +181,32 @@ const fixFragmentedDiagrams = (content: string): string => {
 };
 
 export const formatContent = (content: string, style: LearningStyle): string => {
+  // Remove markdown code fences if the entire content is wrapped in them
+  if (content.trim().startsWith('```markdown') && content.trim().endsWith('```')) {
+    content = content.trim();
+    content = content.replace(/^```markdown\n/, '');
+    content = content.replace(/\n```$/, '');
+  }
+  
+  // Also handle plain ``` fences without language specifier
+  if (content.trim().startsWith('```') && content.trim().endsWith('```')) {
+    const lines = content.trim().split('\n');
+    if (lines[0] === '```' && lines[lines.length - 1] === '```') {
+      lines.shift(); // remove first ```
+      lines.pop();   // remove last ```
+      content = lines.join('\n');
+    }
+  }
+
+  // Clean up any remaining markdown artifacts
+  content = content.replace(/^```markdown$/gm, '');
+  content = content.replace(/^```$/gm, '');
+  content = content.replace(/^\s*```\s*$/gm, '');
+  
+  // Remove any standalone markdown language indicators
+  content = content.replace(/^markdown\s*$/gm, '');
+  content = content.replace(/^\s*markdown\s*$/gm, '');
+
   // Add reading time estimate if not present
   if (!content.includes("~")) {
     const words = content.split(/\s+/).length;
