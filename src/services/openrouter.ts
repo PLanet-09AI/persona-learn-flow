@@ -41,30 +41,31 @@ export class OpenRouterService {
   private apiKey: string;
   private siteUrl: string;
   private siteName: string;
-  private baseUrl: string = 'https://openrouter.ai/api/v1/chat/completions';
-  private model: string = 'qwen/qwen3-14b:free';
+  private baseUrl: string = '/.netlify/functions/openrouter-service';
+  private model: string = 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free';
   private fallbackModels: string[] = [
+    'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
     'qwen/qwen3-14b:free',
     'meta-llama/llama-3.1-8b-instruct:free',
     'microsoft/phi-3-medium-128k-instruct:free',
     'google/gemma-7b-it:free',
-    'mistralai/mistral-7b-instruct:free',
-    'huggingfaceh4/zephyr-7b-beta:free'
+    'mistralai/mistral-7b-instruct:free'
   ];
 
   constructor() {
-    // Using a separate API key for the Qwen model
-    this.apiKey = import.meta.env.VITE_OPENROUTER_QWEN_API_KEY || import.meta.env.VITE_OPENROUTER_API_KEY || '';
+    // Using primary OpenRouter API key
+    this.apiKey = import.meta.env.VITE_OPENROUTER_API_KEY || '';
     this.siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
     this.siteName = import.meta.env.VITE_SITE_NAME || 'Ndu AI Learning System';
     
     // Check if API key is available
     if (!this.apiKey) {
-      console.warn('🚨 OpenRouter API key not found. Please set VITE_OPENROUTER_QWEN_API_KEY in your environment variables.');
+      console.warn('🚨 OpenRouter API key not found. Please set VITE_OPENROUTER_API_KEY in your environment variables.');
     } else {
       console.log('✅ OpenRouter API key found:', this.apiKey.substring(0, 10) + '...');
     }
     
+    // Log initialization
     console.log(`🚀 Initialized OpenRouter Service with model: ${this.model}`);
   }
 
@@ -72,35 +73,34 @@ export class OpenRouterService {
    * Make API request with error handling
    */
   private async makeRequest(model: string, messages: Message[]): Promise<string> {
-    const requestBody: ChatCompletionRequest = {
-      model: model,
-      messages: messages,
-      temperature: model.includes('gpt-4') ? 0.7 : 0.9,
-      max_tokens: 1000,
-      top_p: 0.9
-    };
+    console.log('Making request with model:', model);
+    console.log('First message:', messages[0]);
 
     const response = await fetch(this.baseUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'HTTP-Referer': this.siteUrl,
-        'X-Title': this.siteName,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        model,
+        messages
+      })
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('OpenRouter API Error:', errorData);
+      console.error('OpenRouter API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      });
       
       // Handle specific error types
       if (response.status === 429) {
         throw new Error(`429: Rate limit exceeded. ${errorData.error?.message || 'Please wait before making another request.'}`);
       }
       
-      throw new Error(`API error: ${response.status} ${response.statusText} - ${errorData.error?.message || 'Unknown error'}`);
+      throw new Error(`API error: ${response.status} - ${errorData.error || errorData.details || 'Unknown error'}`);
     }
 
     const data: ChatCompletionResponse = await response.json();

@@ -187,7 +187,8 @@ class EnhancedYocoService {
       console.log('🔐 Creating Yoco checkout via backend API...', request);
       
       // Call our backend API instead of Yoco directly
-      const response = await fetch('http://localhost:3002/api/yoco/checkout', {
+      const apiBase = import.meta.env.PROD ? '/.netlify/functions' : 'http://localhost:3002/api';
+      const response = await fetch(`${apiBase}/yoco/checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

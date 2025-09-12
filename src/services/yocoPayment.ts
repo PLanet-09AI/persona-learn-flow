@@ -57,11 +57,11 @@ class YocoPaymentService {
   private isTestMode: boolean;
 
   constructor() {
-    this.apiKey = import.meta.env.VITE_YOCO_API_KEY || '';
-    this.isTestMode = import.meta.env.VITE_YOCO_TEST_MODE === 'true';
+    this.apiKey = import.meta.env.VITE_YOCO_PUBLIC_KEY || '';
+    this.isTestMode = import.meta.env.VITE_YOCO_MODE === 'test';
     
     if (!this.apiKey) {
-      console.warn('🚨 Yoco API key not found. Please set VITE_YOCO_API_KEY in your environment variables.');
+      console.warn('🚨 Yoco API key not found. Please set VITE_YOCO_PUBLIC_KEY in your environment variables.');
     } else {
       console.log('✅ Yoco Payment Service initialized:', this.isTestMode ? 'TEST MODE' : 'LIVE MODE');
     }

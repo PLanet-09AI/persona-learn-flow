@@ -53,14 +53,22 @@ export class OpenRouterService {
   ];
 
   constructor() {
-    // Using a separate API key for the Qwen model
-    this.apiKey = import.meta.env.VITE_OPENROUTER_QWEN_API_KEY || import.meta.env.VITE_OPENROUTER_API_KEY || '';
+    // Try to use model-specific API key first, fall back to default
+    const modelSpecificKey = this.model.includes('qwen') 
+      ? import.meta.env.VITE_OPENROUTER_QWEN_API_KEY
+      : this.model.includes('moonshot')
+      ? import.meta.env.VITE_OPENROUTER_MOONSHOT_API_KEY
+      : null;
+
+    this.apiKey = modelSpecificKey || import.meta.env.VITE_OPENROUTER_API_KEY || '';
     this.siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
     this.siteName = import.meta.env.VITE_SITE_NAME || 'Ndu AI Learning System';
     
     // Check if API key is available
     if (!this.apiKey) {
-      console.warn('OpenRouter API key not found. Please set VITE_OPENROUTER_QWEN_API_KEY in your environment variables.');
+      console.warn(`🚨 OpenRouter API key not found for model ${this.model}. Please set the appropriate environment variable.`);
+    } else {
+      console.log(`✅ OpenRouter API key found for model ${this.model}:`, this.apiKey.substring(0, 10) + '...');
     }
   }
 
