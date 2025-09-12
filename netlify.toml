@@ -14,15 +14,27 @@
   publish = "dist"
   framework = "#custom"
 
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["node-fetch"]
+
+# API redirects first
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
 
+# SPA fallback last
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-[functions]
-  node_bundler = "esbuild"
+# CORS headers
+[[headers]]
+  for = "/*"
+    [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+    Access-Control-Max-Age = "86400"
