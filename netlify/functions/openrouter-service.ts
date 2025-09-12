@@ -42,12 +42,10 @@ const handler: Handler = async (event, context) => {
     }
 
     // Get appropriate API key based on model
-    let apiKey = process.env.OPENROUTER_API_KEY; // Default key
+    let apiKey = process.env.OPENROUTER_MOONSHOT_API_KEY; // Use Moonshot key as default since it's working
     
     if (model.includes('qwen')) {
-      apiKey = process.env.OPENROUTER_QWEN_API_KEY || process.env.OPENROUTER_API_KEY;
-    } else if (model.includes('moonshot')) {
-      apiKey = process.env.OPENROUTER_MOONSHOT_API_KEY || process.env.OPENROUTER_API_KEY;
+      apiKey = process.env.OPENROUTER_QWEN_API_KEY || process.env.OPENROUTER_MOONSHOT_API_KEY;
     }
 
     if (!apiKey) {
@@ -62,7 +60,14 @@ const handler: Handler = async (event, context) => {
     console.log('Making OpenRouter request with:', {
       model,
       messagesCount: messages.length,
-      firstMessage: messages[0]
+      firstMessage: messages[0],
+      apiKeyPrefix: apiKey.substring(0, 10) + '...',
+      headers: {
+        'HTTP-Referer': 'https://ndusai.netlify.app',
+        'X-Title': 'Ndu AI Learning System',
+        'OpenAI-Organization': 'Ndu AI Learning System',
+        'User-Agent': 'Ndu AI Learning System/1.0.0'
+      }
     });
       
     // Make request to OpenRouter
@@ -72,7 +77,9 @@ const handler: Handler = async (event, context) => {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://ndusai.netlify.app',
-        'X-Title': 'Ndu AI Learning System'
+        'X-Title': 'Ndu AI Learning System',
+        'OpenAI-Organization': 'Ndu AI Learning System',
+        'User-Agent': 'Ndu AI Learning System/1.0.0'
       },
       body: JSON.stringify({
         model,
