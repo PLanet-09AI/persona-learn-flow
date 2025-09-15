@@ -29,44 +29,85 @@ export const useAuth = () => {
   });
 
   const signInWithGoogle = async () => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    // Reset state at the start
+    setState(prev => ({ 
+      ...prev, 
+      isLoading: true, 
+      error: null 
+    }));
+
     try {
       const provider = new GoogleAuthProvider();
-      // Configure Google sign-in for better UX
+      
+      // Configure Google sign-in for optimal UX
       provider.setCustomParameters({
-        prompt: 'select_account',
-        access_type: 'offline',
-        include_granted_scopes: 'true'
+        prompt: 'select_account', // Always show account picker
+        access_type: 'offline', // Request refresh token
+        include_granted_scopes: 'true' // Include previously granted scopes
       });
 
-      // Create a popup window in the center of the screen
+      // Configure auth instance
+      auth.useDeviceLanguage(); // Use user's preferred language
+      
+      // Handle popup positioning
       const width = 500;
       const height = 600;
-      const left = window.innerWidth / 2 - width / 2;
-      const top = window.innerHeight / 2 - height / 2;
-      
-      auth.languageCode = 'en'; // Set language
+      const left = Math.max(0, (window.innerWidth - width) / 2);
+      const top = Math.max(0, (window.innerHeight - height) / 2);
 
-      const result = await signInWithPopup(auth, provider);
-      console.log("Google sign-in successful:", result.user.uid);
-      return result.user;
-    } catch (error) {
-      console.error("Google sign-in error:", error);
-      
-      // Handle specific error cases
-      const errorMessage = error.code === 'auth/popup-closed-by-user'
-        ? 'Sign-in cancelled. Please try again.'
-        : error.code === 'auth/popup-blocked'
-        ? 'Pop-up was blocked. Please allow pop-ups for this site.'
-        : 'Failed to sign in with Google. Please try again.';
+      // Attempt sign in
+      const result = await signInWithPopup(auth, provider)
+        .catch(error => {
+          // Handle specific error cases
+          if (error.code === 'auth/popup-closed-by-user') {
+            // User closed the popup - this is a normal user action
+            console.log('Sign-in cancelled by user');
+            setState(prev => ({ 
+              ...prev, 
+              isLoading: false,
+              error: null // Don't show error for user-initiated cancel
+            }));
+          } else if (error.code === 'auth/popup-blocked') {
+            // Popup was blocked by browser
+            console.warn('Sign-in popup was blocked');
+            setState(prev => ({ 
+              ...prev, 
+              isLoading: false,
+              error: new Error('Please allow pop-ups for this site to sign in with Google')
+            }));
+          } else {
+            // Other errors
+            console.error('Google sign-in error:', error);
+            setState(prev => ({ 
+              ...prev, 
+              isLoading: false,
+              error: new Error('Unable to sign in with Google. Please try again.')
+            }));
+          }
+          return null; // Return null instead of throwing
+        });
 
+      // If sign-in was cancelled or failed, return early
+      if (!result) return null;
+
+      // Sign-in successful
+      console.log('Google sign-in successful:', result.user.uid);
       setState(prev => ({ 
         ...prev, 
-        isLoading: false, 
-        error: new Error(errorMessage)
+        isLoading: false,
+        error: null
       }));
       
-      throw error;
+      return result.user;
+    } catch (error) {
+      // Catch any unexpected errors
+      console.error('Unexpected error during Google sign-in:', error);
+      setState(prev => ({ 
+        ...prev, 
+        isLoading: false,
+        error: new Error('An unexpected error occurred. Please try again.')
+      }));
+      return null; // Return null instead of throwing
     }
   };
 
