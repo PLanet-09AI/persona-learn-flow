@@ -28,6 +28,48 @@ export const useAuth = () => {
     error: null
   });
 
+  const signInWithGoogle = async () => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    try {
+      const provider = new GoogleAuthProvider();
+      // Configure Google sign-in for better UX
+      provider.setCustomParameters({
+        prompt: 'select_account',
+        access_type: 'offline',
+        include_granted_scopes: 'true'
+      });
+
+      // Create a popup window in the center of the screen
+      const width = 500;
+      const height = 600;
+      const left = window.innerWidth / 2 - width / 2;
+      const top = window.innerHeight / 2 - height / 2;
+      
+      auth.languageCode = 'en'; // Set language
+
+      const result = await signInWithPopup(auth, provider);
+      console.log("Google sign-in successful:", result.user.uid);
+      return result.user;
+    } catch (error) {
+      console.error("Google sign-in error:", error);
+      
+      // Handle specific error cases
+      const errorMessage = error.code === 'auth/popup-closed-by-user'
+        ? 'Sign-in cancelled. Please try again.'
+        : error.code === 'auth/popup-blocked'
+        ? 'Pop-up was blocked. Please allow pop-ups for this site.'
+        : 'Failed to sign in with Google. Please try again.';
+
+      setState(prev => ({ 
+        ...prev, 
+        isLoading: false, 
+        error: new Error(errorMessage)
+      }));
+      
+      throw error;
+    }
+  };
+
   useEffect(() => {
     console.log("Setting up auth state listener");
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -117,20 +159,7 @@ export const useAuth = () => {
     }
   };
   
-  const signInWithGoogle = async () => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      // Auth state change will be handled by the onAuthStateChanged listener
-    } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        error: error as Error 
-      }));
-    }
-  };
+  // signInWithGoogle is now defined above
 
   const signOut = async () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));

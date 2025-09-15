@@ -39,14 +39,14 @@ interface ChatCompletionResponse {
 
 export class OpenRouterService {
   private baseUrl: string = '/.netlify/functions/openrouter-service';
-  private model: string = 'qwen/qwen3-14b:free';
+  private models = {
+    qwen: 'qwen/qwen3-235b-a22b:free',
+    moonshot: 'moonshotai/kimi-k2:free'
+  };
+  private model: string = this.models.qwen; // Default model
   private fallbackModels: string[] = [
-    'qwen/qwen3-14b:free',
-    'meta-llama/llama-3.1-8b-instruct:free',
-    'microsoft/phi-3-medium-128k-instruct:free',
-    'google/gemma-7b-it:free',
-    'mistralai/mistral-7b-instruct:free',
-    'huggingfaceh4/zephyr-7b-beta:free'
+    this.models.qwen,
+    this.models.moonshot
   ];
 
   constructor() {
