@@ -38,10 +38,7 @@ interface ChatCompletionResponse {
 }
 
 export class OpenRouterService {
-  private apiKey: string;
-  private siteUrl: string;
-  private siteName: string;
-  private baseUrl: string = 'https://openrouter.ai/api/v1/chat/completions';
+  private baseUrl: string = '/.netlify/functions/openrouter-service';
   private model: string = 'qwen/qwen3-14b:free';
   private fallbackModels: string[] = [
     'qwen/qwen3-14b:free',
@@ -53,23 +50,7 @@ export class OpenRouterService {
   ];
 
   constructor() {
-    // Try to use model-specific API key first, fall back to default
-    const modelSpecificKey = this.model.includes('qwen') 
-      ? import.meta.env.VITE_OPENROUTER_QWEN_API_KEY
-      : this.model.includes('moonshot')
-      ? import.meta.env.VITE_OPENROUTER_MOONSHOT_API_KEY
-      : null;
-
-    this.apiKey = modelSpecificKey || import.meta.env.VITE_OPENROUTER_API_KEY || '';
-    this.siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
-    this.siteName = import.meta.env.VITE_SITE_NAME || 'Ndu AI Learning System';
-    
-    // Check if API key is available
-    if (!this.apiKey) {
-      console.warn(`🚨 OpenRouter API key not found for model ${this.model}. Please set the appropriate environment variable.`);
-    } else {
-      console.log(`✅ OpenRouter API key found for model ${this.model}:`, this.apiKey.substring(0, 10) + '...');
-    }
+    console.log(`✅ Using OpenRouter service via Netlify function for model ${this.model}`);
   }
 
   /**
@@ -87,9 +68,6 @@ export class OpenRouterService {
     const response = await fetch(this.baseUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'HTTP-Referer': this.siteUrl,
-        'X-Title': this.siteName,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody)
@@ -157,9 +135,7 @@ export class OpenRouterService {
     model: string = this.model, 
     customSystemPrompt?: string
   ): Promise<string> {
-    if (!this.apiKey) {
-      return "API key not configured. Please contact the administrator.";
-    }
+    // No need to check API key since we're using the Netlify function
 
     // Create cache key based on inputs
     const contextHash = contextContent ? cacheService.hashString(contextContent) : undefined;

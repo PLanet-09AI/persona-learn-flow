@@ -42,20 +42,64 @@ const handler: Handler = async (event, context) => {
     }
 
     // Get appropriate API key based on model
-    let apiKey = process.env.OPENROUTER_MOONSHOT_API_KEY; // Use Moonshot key as default since it's working
-    
+
+
+    let apiKey;
+
+    // Select API key based on model
     if (model.includes('qwen')) {
-      apiKey = process.env.OPENROUTER_QWEN_API_KEY || process.env.OPENROUTER_MOONSHOT_API_KEY;
+      apiKey = process.env.OPENROUTER_QWEN_API_KEY;
+    } else if (model.includes('moonshot')) {
+      apiKey = process.env.OPENROUTER_MOONSHOT_API_KEY;
+    } else {
+      // For all other models (mistral, llama, phi, gemma, zephyr, dolphin, etc)
+      apiKey = process.env.OPENROUTER_API_KEY;
+    }
+
+    // Debug logging to help troubleshoot key selection
+    console.log('Available keys:', {
+      hasDefaultKey: !!process.env.OPENROUTER_API_KEY,
+      hasMoonshotKey: !!process.env.OPENROUTER_MOONSHOT_API_KEY,
+      hasQwenKey: !!process.env.OPENROUTER_QWEN_API_KEY
+    });
+
+    // Fallback chain: If specific key not found, try alternatives
+    if (!apiKey) {
+      apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_MOONSHOT_API_KEY || process.env.OPENROUTER_QWEN_API_KEY;
     }
 
     if (!apiKey) {
-      console.error('OpenRouter API key not found in environment');
+      console.error('OpenRouter API key not found in environment', {
+        model,
+        availableEnvVars: Object.keys(process.env).filter(key => key.includes('OPENROUTER'))
+      });
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ error: 'API key not configured' })
+        body: JSON.stringify({ 
+          error: 'API key not configured',
+          details: `No API key available for model: ${model}`
+        })
       };
     }
+    
+    // Validate API key format
+    if (!apiKey.startsWith('sk-')) {
+      console.error('Invalid API key format', {
+        model,
+        keyPrefix: apiKey.substring(0, 5)
+      });
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Invalid API key format',
+          details: 'API key should start with sk-'
+        })
+      };
+    }
+    
+    console.log(`Using API key for model ${model}: ${apiKey.substring(0, 10)}...`);
       
     console.log('Making OpenRouter request with:', {
       model,
