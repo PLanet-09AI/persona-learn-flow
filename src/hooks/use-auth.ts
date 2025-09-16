@@ -28,7 +28,9 @@ export const useAuth = () => {
     error: null
   });
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (retryCount = 0) => {
+    const MAX_RETRIES = 3;
+    
     // Reset state at the start
     setState(prev => ({ 
       ...prev, 
@@ -43,48 +45,79 @@ export const useAuth = () => {
       provider.setCustomParameters({
         prompt: 'select_account', // Always show account picker
         access_type: 'offline', // Request refresh token
-        include_granted_scopes: 'true' // Include previously granted scopes
+        include_granted_scopes: 'true', // Include previously granted scopes
+        ux_mode: 'popup', // Explicitly request popup mode
       });
 
       // Configure auth instance
       auth.useDeviceLanguage(); // Use user's preferred language
       
-      // Handle popup positioning
-      const width = 500;
-      const height = 600;
-      const left = Math.max(0, (window.innerWidth - width) / 2);
-      const top = Math.max(0, (window.innerHeight - height) / 2);
+      // Calculate optimal popup dimensions based on screen size
+      const width = Math.min(600, window.innerWidth - 40); // Max width of 600px or screen width - 40px
+      const height = Math.min(700, window.innerHeight - 40); // Max height of 700px or screen height - 40px
+      
+      // Center the popup while ensuring it's fully visible
+      const left = Math.max(0, Math.floor((window.innerWidth - width) / 2));
+      const top = Math.max(0, Math.floor((window.innerHeight - height) / 2));
 
-      // Attempt sign in
-      const result = await signInWithPopup(auth, provider)
-        .catch(error => {
-          // Handle specific error cases
+      // Create popup options
+      const popupOptions = {
+        width,
+        height,
+        left,
+        top,
+        menubar: 'no',
+        location: 'no',
+        resizable: 'no',
+        scrollbars: 'yes',
+        status: 'no',
+        focus: true,
+      };
+
+      // Attempt sign in with enhanced error handling
+      const result = await signInWithPopup(auth, provider, popupOptions)
+        .catch(async (error) => {
+          console.log('Sign-in attempt error:', error.code);
+
           if (error.code === 'auth/popup-closed-by-user') {
-            // User closed the popup - this is a normal user action
-            console.log('Sign-in cancelled by user');
-            setState(prev => ({ 
-              ...prev, 
-              isLoading: false,
-              error: null // Don't show error for user-initiated cancel
-            }));
+            // If we haven't exceeded max retries, try again
+            if (retryCount < MAX_RETRIES) {
+              console.log(`Retrying sign-in attempt ${retryCount + 1} of ${MAX_RETRIES}`);
+              // Small delay before retry to prevent rapid-fire popups
+              await new Promise(resolve => setTimeout(resolve, 500));
+              return signInWithGoogle(retryCount + 1);
+            } else {
+              console.log('Max retries exceeded');
+              setState(prev => ({ 
+                ...prev, 
+                isLoading: false,
+                error: new Error('Sign-in process was interrupted. Please try again.')
+              }));
+            }
           } else if (error.code === 'auth/popup-blocked') {
-            // Popup was blocked by browser
             console.warn('Sign-in popup was blocked');
             setState(prev => ({ 
               ...prev, 
               isLoading: false,
-              error: new Error('Please allow pop-ups for this site to sign in with Google')
+              error: new Error('Please allow pop-ups for this site and try again')
             }));
+          } else if (error.code === 'auth/cancelled-popup-request' || 
+                     error.code === 'auth/popup-closed-by-user') {
+            // Handle case where popup might have communication issues
+            if (retryCount < MAX_RETRIES) {
+              console.log('Popup communication issue, retrying...');
+              await new Promise(resolve => setTimeout(resolve, 500));
+              return signInWithGoogle(retryCount + 1);
+            }
           } else {
-            // Other errors
             console.error('Google sign-in error:', error);
             setState(prev => ({ 
               ...prev, 
               isLoading: false,
-              error: new Error('Unable to sign in with Google. Please try again.')
+              error: new Error('Unable to complete sign-in. Please try again.')
             }));
           }
-          return null; // Return null instead of throwing
+          return null;
         });
 
       // If sign-in was cancelled or failed, return early
