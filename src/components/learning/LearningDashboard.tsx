@@ -9,6 +9,7 @@ import { ContentViewer } from "./ContentViewer";
 import { QuizComponent } from "./QuizComponentNew";
 import { Leaderboard } from "./Leaderboard";
 import { UserMenu } from "@/components/ui/user-menu";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 export type LearningStyle = "visual" | "auditory" | "reading" | "kinesthetic";
 
@@ -22,6 +23,7 @@ export interface UserProfile {
 
 const LearningDashboard = () => {
   const navigate = useNavigate();
+  const { firebaseUser } = useAuthContext();
   const [currentStep, setCurrentStep] = useState<"field" | "style" | "learning" | "quiz" | "leaderboard">("field");
   const [userProfile, setUserProfile] = useState<UserProfile>({
     field: "",
@@ -30,6 +32,9 @@ const LearningDashboard = () => {
     level: 1
   });
   const [currentContent, setCurrentContent] = useState<string>("");
+
+  // Use firebaseUser.uid as userId, fallback to empty string if not available
+  const userId = firebaseUser?.uid || "";
 
   const handleFieldSelect = (field: string) => {
     setUserProfile(prev => ({ ...prev, field }));
@@ -193,6 +198,7 @@ const LearningDashboard = () => {
               <QuizComponent
                 content={currentContent}
                 userProfile={userProfile}
+                userId={userId}
                 onQuizComplete={handleQuizComplete}
               />
             )}
@@ -200,6 +206,7 @@ const LearningDashboard = () => {
             {currentStep === "leaderboard" && (
               <Leaderboard
                 userProfile={userProfile}
+                userId={userId}
                 onNewLesson={handleNewLesson}
               />
             )}

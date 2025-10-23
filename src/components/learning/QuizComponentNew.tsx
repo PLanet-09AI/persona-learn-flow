@@ -7,15 +7,18 @@ import { CheckCircle, XCircle, Clock, Trophy } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { UserProfile } from "./LearningDashboard";
 import { generateQuiz } from "@/services/quiz";
+import { attemptService } from "@/services/firebase";
 import type { Question } from "@/types/learning";
 
 interface QuizComponentProps {
   content: string;
   userProfile: UserProfile;
+  userId: string;
+  contentArtifactId?: string;
   onQuizComplete: (score: number) => void;
 }
 
-export const QuizComponent = ({ content, userProfile, onQuizComplete }: QuizComponentProps) => {
+export const QuizComponent = ({ content, userProfile, userId, contentArtifactId, onQuizComplete }: QuizComponentProps) => {
   const { toast } = useToast();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -26,6 +29,7 @@ export const QuizComponent = ({ content, userProfile, onQuizComplete }: QuizComp
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [isLoading, setIsLoading] = useState(true);
+  const [isSavingResult, setIsSavingResult] = useState(false);
 
   // Generate AI-powered quiz questions based on content and learning style
   const generateQuestions = async () => {
@@ -113,7 +117,7 @@ export const QuizComponent = ({ content, userProfile, onQuizComplete }: QuizComp
     }
   };
 
-  const handleFinishQuiz = () => {
+  const handleFinishQuiz = async () => {
     // Save current answer if not saved
     if (selectedAnswer !== null && !showExplanation) {
       const newAnswers = [...answers];
@@ -132,6 +136,51 @@ export const QuizComponent = ({ content, userProfile, onQuizComplete }: QuizComp
     const finalScore = Math.round((correctAnswers / questions.length) * 100);
     setScore(finalScore);
     setIsComplete(true);
+
+    // Save quiz attempt to Firestore
+    setIsSavingResult(true);
+    try {
+      const timeTaken = 300 - timeLeft;
+      
+      // Create a dummy quiz ID based on content (in production, this would come from the content artifact)
+      const quizId = contentArtifactId || `quiz_${Date.now()}`;
+      
+      // Save the attempt
+      await attemptService.saveAttempt({
+        userId,
+        quizId,
+        answers: answers.map(a => a ?? -1),
+        score: finalScore,
+        timeTaken,
+        completed: true,
+        timestamp: new Date()
+      });
+
+      console.log('✅ Quiz attempt saved to Firestore:', {
+        userId,
+        quizId,
+        score: finalScore,
+        correctAnswers,
+        totalQuestions: questions.length,
+        timeTaken
+      });
+
+      toast({
+        title: "Success",
+        description: "Your quiz results have been saved!",
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('❌ Error saving quiz attempt:', error);
+      toast({
+        title: "Warning",
+        description: "Quiz completed but results could not be saved. Please check your connection.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSavingResult(false);
+    }
+
     onQuizComplete(finalScore);
   };
 
