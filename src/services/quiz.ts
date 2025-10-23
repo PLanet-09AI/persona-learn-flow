@@ -1,6 +1,5 @@
 import { Question, LearningStyle } from "@/types/learning";
-
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+import { openRouterService } from "./openrouter";
 
 const getLearningStyleGuidelines = (style: LearningStyle): string => {
   switch (style) {
@@ -37,40 +36,28 @@ const MODEL = "cognitivecomputations/dolphin-mistral-24b-venice-edition:free";
 
 export const generateQuiz = async (content: string, learningStyle: string, field: string): Promise<Question[]> => {
   try {
-    const response = await fetch(OPENROUTER_API_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
-        "HTTP-Referer": import.meta.env.VITE_SITE_URL,
-        "X-Title": import.meta.env.VITE_SITE_NAME,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert at creating educational assessments. Generate quiz questions that test understanding while matching the user's learning style."
-          },
-          {
-            role: "user",
-            content: generateQuizPrompt(content, learningStyle as LearningStyle, field)
-          }
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to generate quiz');
+    console.log('🎯 Generating quiz with learning style:', learningStyle, 'for field:', field);
+    
+    // Create the prompt for quiz generation
+    const prompt = generateQuizPrompt(content, learningStyle as LearningStyle, field);
+    
+    // Check if API key is available
+    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    if (!apiKey) {
+      throw new Error('🚨 OpenRouter API key not configured. Please set VITE_OPENROUTER_API_KEY in environment variables.');
     }
-
-    const data = await response.json();
     
-    // Enhanced console logging with styling
+    console.log('✅ API Key found:', apiKey.substring(0, 10) + '...');
+    
+    // Use the OpenRouter service to generate the quiz
+    const messageContent = await openRouterService.askAboutContent(
+      prompt,
+      content,
+      MODEL,
+      "You are an expert at creating educational assessments. Generate quiz questions that test understanding while matching the user's learning style. Return ONLY valid JSON without markdown code fences."
+    );
+    
     console.group('%c📝 AI Quiz Generation', 'color: #3b82f6; font-size: 14px; font-weight: bold;');
-    console.log('%c📊 API Response:', 'font-weight: bold; color: #10b981;', data);
-    
-    const messageContent = data.choices[0].message.content;
     console.log('%c📜 Raw Content:', 'font-weight: bold; color: #6366f1;', messageContent);
     
     try {
@@ -117,29 +104,57 @@ export const generateQuiz = async (content: string, learningStyle: string, field
 
 const generateQuizPrompt = (content: string, learningStyle: LearningStyle, field: string): string => {
   const prompt = [
-    'Create 5 multiple-choice questions based on the following content and parameters:\n',
-    `CONTENT:\n${content}\n`,
-    `LEARNING STYLE: ${learningStyle}\n${getLearningStyleGuidelines(learningStyle)}\n`,
-    `FIELD: ${field}\n`,
-    `- Use ${field}-specific terminology and concepts`,
-    '- Include practical applications and examples',
-    `- Ensure explanations reference ${field} principles\n`,
-    'FORMAT:',
-    'Return a valid JSON array of 5 question objects. Each object must have:\n',
+    '=== QUIZ GENERATION TASK ===\n',
+    'Your task: Create 5 multiple-choice questions based on the provided content and parameters.\n',
+    
+    '=== CONTENT TO ASSESS ===',
+    `${content}\n`,
+    
+    '=== LEARNING STYLE ADAPTATION ===',
+    `Learning Style: ${learningStyle}`,
+    `Guidelines:\n${getLearningStyleGuidelines(learningStyle)}\n`,
+    
+    '=== FIELD CONTEXT ===',
+    `Field/Subject: ${field}`,
+    '- Use field-specific terminology and concepts',
+    '- Include practical applications relevant to the field',
+    '- Ensure explanations reference field principles',
+    '- Challenge students at an appropriate level for this field\n',
+    
+    '=== REQUIRED RESPONSE FORMAT ===',
+    'Return ONLY a valid JSON array with NO additional text, markdown code fences, or explanations.\n',
+    
+    'Structure: Each question object MUST have exactly these properties:',
     '{',
-    '  "id": "number (1-5)",',
-    '  "question": "string",',
-    '  "options": ["string", "string", "string", "string"],',
-    '  "correctAnswer": "number (0-3)",',
-    '  "explanation": "string"',
+    '  "id": "1",           // Question number as string (1-5)',
+    '  "question": "string", // The question text',
+    '  "options": ["string", "string", "string", "string"], // 4 options exactly',
+    '  "correctAnswer": 0,   // Index of correct option (0-3)',
+    '  "explanation": "string" // Why this answer is correct and learning value',
     '}\n',
-    'IMPORTANT INSTRUCTIONS:',
-    '1. Return ONLY valid JSON without any markdown code fences (no ```json or ``` tags)',
-    '2. Do not include any explanatory text before or after the JSON',
-    '3. The JSON must be properly formatted and valid',
-    '4. The array must contain exactly 5 questions'
+    
+    '=== CRITICAL INSTRUCTIONS ===',
+    '1. Return a JSON array containing exactly 5 question objects',
+    '2. No markdown code fences (no ```json or ``` tags)',
+    '3. No explanatory text before or after the JSON',
+    '4. Ensure JSON is properly formatted and valid',
+    '5. Match questions to the specified learning style',
+    '6. Make questions appropriate for the specified field',
+    '7. Ensure variety in difficulty and question types',
+    '8. Include clear, detailed explanations for each correct answer\n',
+    
+    '=== EXAMPLE OUTPUT ===',
+    '[',
+    '  {',
+    '    "id": "1",',
+    '    "question": "What is the primary concept?",',
+    '    "options": ["Option A", "Option B", "Option C", "Option D"],',
+    '    "correctAnswer": 1,',
+    '    "explanation": "Option B is correct because..."',
+    '  }',
+    ']',
+    '\n=== START GENERATING QUIZ NOW ==='
   ].join('\n');
 
   return prompt;
-
-}
+};
