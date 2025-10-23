@@ -23,7 +23,7 @@
   included_files = ["netlify/functions/**/*"]
   environment = { YOCO_SECRET_KEY = "sk_test_443a9ffcR4ArAmZ7e144502b4b1a" }
 
-[functions."yoco/checkout"]
+[functions.yoco]
   included_files = ["netlify/functions/**/*"]
   environment = { YOCO_SECRET_KEY = "sk_test_443a9ffcR4ArAmZ7e144502b4b1a" }
 
@@ -38,6 +38,12 @@
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
+  status = 200
+
+# Direct Yoco function access
+[[redirects]]
+  from = "/.netlify/functions/yoco/*"
+  to = "/.netlify/functions/yoco/:splat"
   status = 200
 
 # SPA fallback last
