@@ -186,8 +186,20 @@ class EnhancedYocoService {
     try {
       console.log('🔐 Creating Yoco checkout via backend API...', request);
       
-      // Call our backend API instead of Yoco directly
-      const apiBase = import.meta.env.PROD ? '/.netlify/functions' : 'http://localhost:3002/api';
+      // Determine API base URL based on environment
+      let apiBase: string;
+      
+      if (import.meta.env.PROD) {
+        // Production: use Netlify functions
+        apiBase = '/.netlify/functions';
+      } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Local dev with Vite: still use Netlify functions endpoint (will be proxied)
+        apiBase = '/.netlify/functions';
+      } else {
+        // Fallback
+        apiBase = '/.netlify/functions';
+      }
+      
       const response = await fetch(`${apiBase}/yoco/checkout`, {
         method: 'POST',
         headers: {

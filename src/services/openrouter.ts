@@ -41,7 +41,8 @@ export class OpenRouterService {
   private apiKey: string;
   private siteUrl: string;
   private siteName: string;
-  private baseUrl: string = '/.netlify/functions/openrouter-service';
+  private baseUrl: string;
+  private isLocalDev: boolean;
   private model: string = 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free';
   private fallbackModels: string[] = [
     'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
@@ -58,6 +59,14 @@ export class OpenRouterService {
     this.siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
     this.siteName = import.meta.env.VITE_SITE_NAME || 'Ndu AI Learning System';
     
+    // Detect if running locally with Vite dev server
+    this.isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    // Use direct API call for local dev, Netlify function for production
+    this.baseUrl = this.isLocalDev 
+      ? 'https://openrouter.ai/api/v1/chat/completions'
+      : '/.netlify/functions/openrouter-service';
+    
     // Check if API key is available
     if (!this.apiKey) {
       console.warn('🚨 OpenRouter API key not found. Please set VITE_OPENROUTER_API_KEY in your environment variables.');
@@ -66,7 +75,7 @@ export class OpenRouterService {
     }
     
     // Log initialization
-    console.log(`🚀 Initialized OpenRouter Service with model: ${this.model}`);
+    console.log(`🚀 Initialized OpenRouter Service (${this.isLocalDev ? 'LOCAL DEV' : 'PRODUCTION'}) with model: ${this.model}`);
   }
 
   /**
@@ -76,7 +85,7 @@ export class OpenRouterService {
     console.log('Making request with model:', model);
     console.log('First message:', messages[0]);
 
-    const response = await fetch(this.baseUrl, {
+    const fetchOptions: RequestInit = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -85,14 +94,27 @@ export class OpenRouterService {
         model,
         messages
       })
-    });
+    };
+
+    // For local dev, add API key to headers; for production, let Netlify function handle it
+    if (this.isLocalDev && this.apiKey) {
+      fetchOptions.headers = {
+        ...fetchOptions.headers,
+        'Authorization': `Bearer ${this.apiKey}`,
+        'HTTP-Referer': this.siteUrl,
+        'X-Title': this.siteName
+      };
+    }
+
+    const response = await fetch(this.baseUrl, fetchOptions);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('OpenRouter API Error:', {
         status: response.status,
         statusText: response.statusText,
-        errorData
+        errorData,
+        isLocalDev: this.isLocalDev
       });
       
       // Handle specific error types
@@ -100,7 +122,7 @@ export class OpenRouterService {
         throw new Error(`429: Rate limit exceeded. ${errorData.error?.message || 'Please wait before making another request.'}`);
       }
       
-      throw new Error(`API error: ${response.status} - ${errorData.error || errorData.details || 'Unknown error'}`);
+      throw new Error(`API error: ${response.status} - ${errorData.error?.message || errorData.error || errorData.details || 'Unknown error'}`);
     }
 
     const data: ChatCompletionResponse = await response.json();

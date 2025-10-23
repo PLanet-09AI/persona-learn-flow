@@ -30,11 +30,25 @@ export const handler: Handler = async (event, context) => {
       };
     }
 
+    // Get API key from environment
+    const apiKey = process.env.YOCO_SECRET_KEY;
+    
+    if (!apiKey) {
+      console.error('🚨 YOCO_SECRET_KEY not found in environment variables');
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ 
+          error: 'Internal server error',
+          message: 'Payment service not configured'
+        })
+      };
+    }
+
     // Call Yoco API
     const response = await fetch('https://payments.yoco.com/api/checkouts', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.YOCO_SECRET_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({

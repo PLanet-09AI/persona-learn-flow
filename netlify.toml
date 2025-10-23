@@ -23,6 +23,10 @@
   included_files = ["netlify/functions/**/*"]
   environment = { YOCO_SECRET_KEY = "sk_test_443a9ffcR4ArAmZ7e144502b4b1a" }
 
+[functions."yoco/checkout"]
+  included_files = ["netlify/functions/**/*"]
+  environment = { YOCO_SECRET_KEY = "sk_test_443a9ffcR4ArAmZ7e144502b4b1a" }
+
 [dev]
   command = "npm run dev"
   port = 8080

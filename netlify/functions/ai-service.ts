@@ -95,11 +95,12 @@ export const handler: Handler = async (event, context) => {
     };
   } catch (error) {
     console.error('AI Service Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return {
       statusCode: 500,
       body: JSON.stringify({ 
         error: 'Internal server error',
-        message: error.message
+        message: errorMessage
       })
     };
   }
