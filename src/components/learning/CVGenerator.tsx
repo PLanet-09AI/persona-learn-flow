@@ -9,12 +9,13 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Download, FileText, Mail, Copy, Check } from 'lucide-react';
+import { Loader2, Download, FileText, Mail, Copy, Check, Image as ImageIcon } from 'lucide-react';
 import { cvGeneratorService } from '@/services/cvGenerator';
 import { paymentFirebaseService } from '@/services/paymentFirebase';
 import { UserProfile } from '@/types/payment';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from '@/hooks/use-toast';
+import CVPreviewFormatter from './CVPreviewFormatter';
 
 interface CVGeneratorProps {
   profile: UserProfile;
@@ -214,11 +215,14 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ profile }) => {
           </div>
 
           {/* Photo Option */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-50 dark:bg-blue-950">
             <div>
-              <Label htmlFor="include-photo">Include Photo Placeholder</Label>
-              <p className="text-sm text-muted-foreground">
-                Add a photo placeholder in the CV header
+              <Label htmlFor="include-photo" className="flex items-center gap-2 cursor-pointer">
+                <ImageIcon className="h-4 w-4 text-blue-600" />
+                Include Photo Placeholder
+              </Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Add a professional photo section in the CV header. This is typically a 4x5cm or 2x2.5 inch space.
               </p>
             </div>
             <Switch
@@ -247,27 +251,40 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ profile }) => {
             <div className="space-y-3">
               <Separator />
               <div className="flex items-center justify-between">
-                <h4 className="font-semibold">Generated CV</h4>
+                <div>
+                  <h4 className="font-semibold">Generated CV</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Format: <span className="font-medium capitalize">{format}</span>
+                  </p>
+                </div>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => copyToClipboard(generatedCV, 'cv')}
+                    title="Copy to clipboard"
                   >
-                    {copiedCV ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copiedCV ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                      </>
+                    )}
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => downloadAsFile(generatedCV, `${profile.firstName}_${profile.lastName}_CV.${format === 'markdown' ? 'md' : format === 'html' ? 'html' : 'tex'}`)}
+                    title="Download CV"
                   >
                     <Download className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-              <div className="border rounded-lg p-4 bg-muted/50 max-h-96 overflow-y-auto">
-                <pre className="whitespace-pre-wrap text-sm">{generatedCV}</pre>
-              </div>
+              <CVPreviewFormatter content={generatedCV} format={format} />
             </div>
           )}
         </CardContent>
@@ -343,20 +360,32 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ profile }) => {
                     variant="outline"
                     size="sm"
                     onClick={() => copyToClipboard(generatedCoverLetter, 'coverLetter')}
+                    title="Copy to clipboard"
                   >
-                    {copiedCoverLetter ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copiedCoverLetter ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                      </>
+                    )}
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => downloadAsFile(generatedCoverLetter, `${profile.firstName}_${profile.lastName}_CoverLetter_${companyName.replace(/\s+/g, '_')}.txt`)}
+                    title="Download cover letter"
                   >
                     <Download className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-              <div className="border rounded-lg p-4 bg-muted/50 max-h-96 overflow-y-auto">
-                <pre className="whitespace-pre-wrap text-sm">{generatedCoverLetter}</pre>
+              <div className="border rounded-lg p-6 bg-white dark:bg-gray-950 max-h-96 overflow-y-auto">
+                <div className="text-sm leading-relaxed whitespace-pre-wrap font-serif">
+                  {generatedCoverLetter}
+                </div>
               </div>
             </div>
           )}

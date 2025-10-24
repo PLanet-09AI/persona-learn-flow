@@ -144,12 +144,13 @@ ${options.format === 'markdown' ? `
 ` : ''}
 
 **Essential Sections (in order):**
-1. **Header** - Name, contact info, location${options.includePhoto ? ', [Photo Placement]' : ''}
+1. **Header** - Name, contact info, location${options.includePhoto ? ' | [PHOTO PLACEHOLDER: Professional headshot, 4x5cm or 2x2.5 inches, placed on the right or left of contact info]' : ''}
 2. **Professional Summary** - Compelling 3-4 line summary highlighting key strengths
-3. **Core Skills** - Relevant technical and soft skills
+3. **Core Skills** - Relevant technical and soft skills (organized by category if applicable)
 4. **Professional Experience** - Detailed work history with quantified achievements
-5. **Education** - Academic qualifications
-6. **Additional Sections** - Languages, Certifications, Projects (if applicable)
+5. **Education** - Academic qualifications and certifications
+6. **Languages** - Language proficiency if applicable
+7. **Additional Sections** - Certifications, Projects, Volunteer Work, Publications (if applicable)
 
 **Content Guidelines:**
 - Start each bullet point with strong action verbs
@@ -159,6 +160,15 @@ ${options.format === 'markdown' ? `
 - Keep descriptions concise but impactful
 - Tailor content to the candidate's career goals and target industry
 - Ensure consistency in formatting, tense, and style
+${options.includePhoto ? `
+**Photo Placeholder Guidelines:**
+- Include a clear placeholder section for a professional headshot
+- Recommended size: 4x5cm (1.6x2 inches) or 2x2.5 inches
+- Position: Typically in the top-right corner or next to contact information
+- Style: Professional, formal business attire, good lighting, neutral background
+- Use clear text like "[INSERT PROFESSIONAL HEADSHOT HERE]" or similar placeholder
+- Ensure the placeholder is easily identifiable for the user to replace with their actual photo
+` : ''}
 
 **Professional Writing Standards:**
 - Use professional, confident tone

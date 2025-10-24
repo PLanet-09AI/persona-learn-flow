@@ -53,42 +53,46 @@ export const fetchLeaderboardData = async (userId: string): Promise<LeaderboardU
           )
         );
 
+        // 🔥 ONLY include users who have completed at least one quiz
+        if (attemptsSnapshot.empty) {
+          console.log(`⏭️ Skipping user ${userDoc.id} - no quiz attempts`);
+          return null;
+        }
+
         // Calculate total score from quiz attempts
         let totalScore = 0;
         let streak = 1;
         
-        if (!attemptsSnapshot.empty) {
-          const attempts = attemptsSnapshot.docs.map(doc => doc.data() as Attempt);
+        const attempts = attemptsSnapshot.docs.map(doc => doc.data() as Attempt);
+        
+        // Sort by timestamp descending to get recent attempts
+        attempts.sort((a, b) => 
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+        
+        // Sum scores from all attempts
+        totalScore = attempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0);
+        
+        // Calculate streak based on consecutive days with attempts
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        let currentStreak = 0;
+        for (let i = 0; i < attempts.length; i++) {
+          const attemptDate = new Date(attempts[i].timestamp);
+          attemptDate.setHours(0, 0, 0, 0);
           
-          // Sort by timestamp descending to get recent attempts
-          attempts.sort((a, b) => 
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-          );
+          const expectedDate = new Date(today);
+          expectedDate.setDate(expectedDate.getDate() - i);
           
-          // Sum scores from all attempts
-          totalScore = attempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0);
-          
-          // Calculate streak based on consecutive days with attempts
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          
-          let currentStreak = 0;
-          for (let i = 0; i < attempts.length; i++) {
-            const attemptDate = new Date(attempts[i].timestamp);
-            attemptDate.setHours(0, 0, 0, 0);
-            
-            const expectedDate = new Date(today);
-            expectedDate.setDate(expectedDate.getDate() - i);
-            
-            if (attemptDate.getTime() === expectedDate.getTime()) {
-              currentStreak++;
-            } else {
-              break;
-            }
+          if (attemptDate.getTime() === expectedDate.getTime()) {
+            currentStreak++;
+          } else {
+            break;
           }
-          
-          streak = currentStreak > 0 ? currentStreak : 1;
         }
+        
+        streak = currentStreak > 0 ? currentStreak : 1;
 
         // Calculate level based on score (every 500 points = 1 level)
         const level = Math.floor(totalScore / 500) + 1;
