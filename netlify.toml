@@ -24,6 +24,11 @@
 
 [functions.yoco]
   included_files = ["netlify/functions/**/*"]
+  # Reference environment variables from Netlify UI
+  environment = { 
+    YOCO_SECRET_KEY = "${YOCO_SECRET_KEY}",
+    VITE_YOCO_PUBLIC_KEY = "${VITE_YOCO_PUBLIC_KEY}"
+  }
 
 [dev]
   command = "npm run dev"
