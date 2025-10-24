@@ -13,7 +13,7 @@ interface CheckoutRequest {
 export const handler: Handler = async (event, context) => {
   console.log('🔐 Yoco checkout function called');
   console.log('Method:', event.httpMethod);
-  console.log('Body:', event.body);
+  console.log('Environment check - YOCO_SECRET_KEY exists:', !!process.env.YOCO_SECRET_KEY);
 
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
@@ -37,16 +37,24 @@ export const handler: Handler = async (event, context) => {
       };
     }
 
-    // Get API key from environment
-    const apiKey = process.env.YOCO_SECRET_KEY;
+    // Get API key from environment with multiple fallback sources
+    let apiKey = process.env.YOCO_SECRET_KEY;
+    
+    // Fallback: Check for alternative environment variable names
+    if (!apiKey) {
+      apiKey = process.env.YOCO_API_KEY;
+    }
     
     if (!apiKey) {
-      console.error('🚨 YOCO_SECRET_KEY not found in environment variables');
+      console.error('🚨 YOCO Secret key not found in environment variables');
+      console.error('Checked: YOCO_SECRET_KEY, YOCO_API_KEY');
+      console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('YOCO')).length, 'YOCO-related vars');
+      
       return {
         statusCode: 500,
         body: JSON.stringify({ 
           error: 'Internal server error',
-          message: 'Payment service not configured - YOCO_SECRET_KEY missing'
+          message: 'Payment service not configured - YOCO_SECRET_KEY missing from environment'
         })
       };
     }
