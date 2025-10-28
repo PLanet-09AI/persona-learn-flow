@@ -40,9 +40,16 @@ export const handler: Handler = async (event, context) => {
     // Get API key from environment with multiple fallback sources
     let apiKey = process.env.YOCO_SECRET_KEY;
     
+    // Debug environment (safe logging - no secrets exposed)
+    console.log('🔍 Environment check:');
+    console.log('- YOCO_SECRET_KEY exists:', !!process.env.YOCO_SECRET_KEY);
+    console.log('- YOCO_SECRET_KEY type:', typeof process.env.YOCO_SECRET_KEY);
+    console.log('- Available YOCO vars:', Object.keys(process.env).filter(k => k.includes('YOCO')));
+    
     // Fallback: Check for alternative environment variable names
     if (!apiKey) {
       apiKey = process.env.YOCO_API_KEY;
+      console.log('- Fallback YOCO_API_KEY exists:', !!process.env.YOCO_API_KEY);
     }
     
     if (!apiKey) {
