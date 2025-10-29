@@ -9,8 +9,9 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Download, FileText, Mail, Copy, Check, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Download, FileText, Mail, Copy, Check, Image as ImageIcon, CreditCard, Sparkles } from 'lucide-react';
 import { cvGeneratorService } from '@/services/cvGenerator';
+import { cvGenerationTracker } from '@/services/cvGenerationTracker';
 import { paymentFirebaseService } from '@/services/paymentFirebase';
 import { UserProfile } from '@/types/payment';
 import { useAuth } from '@/hooks/use-auth';
@@ -30,6 +31,16 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ profile }) => {
   const [copiedCV, setCopiedCV] = useState(false);
   const [copiedCoverLetter, setCopiedCoverLetter] = useState(false);
   
+  // Generation tracking
+  const [generationStats, setGenerationStats] = useState({
+    freeUsed: 0,
+    freeRemaining: 3,
+    paidUsed: 0,
+    paidRemaining: 0,
+    totalRemaining: 3,
+    hasPaid: false
+  });
+  
   // CV Options
   const [template, setTemplate] = useState<'modern' | 'classic' | 'creative' | 'minimal'>('modern');
   const [includePhoto, setIncludePhoto] = useState(false);
@@ -42,28 +53,67 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ profile }) => {
 
   const templates = cvGeneratorService.getAvailableTemplates();
 
+  // Load generation statistics on mount
+  useEffect(() => {
+    const loadStats = async () => {
+      if (!user) return;
+      
+      try {
+        const stats = await cvGenerationTracker.getStatistics(user.id);
+        setGenerationStats(stats);
+        console.log('📊 Generation stats loaded:', stats);
+      } catch (error) {
+        console.error('Error loading generation stats:', error);
+      }
+    };
+
+    loadStats();
+  }, [user]);
+
   const handleGenerateCV = async () => {
     if (!user) return;
 
     setLoading(true);
     try {
+      // Check if user can generate
+      const eligibility = await cvGenerationTracker.canGenerateCV(user.id);
+      
+      if (!eligibility.canGenerate) {
+        toast({
+          title: "Generation Limit Reached",
+          description: eligibility.reason,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      console.log('✅ User can generate CV. Remaining:', eligibility.totalRemaining);
+
       const cvContent = await cvGeneratorService.generateCV(profile, {
         template,
         includePhoto,
         format
       });
       
+      // Record the generation
+      await cvGenerationTracker.recordGeneration(user.id);
+      
+      // Update stats
+      const updatedStats = await cvGenerationTracker.getStatistics(user.id);
+      setGenerationStats(updatedStats);
+      
       setGeneratedCV(cvContent);
       
       toast({
         title: "CV Generated Successfully!",
-        description: "Your professional CV has been created based on your profile.",
+        description: `Your professional CV has been created. ${updatedStats.totalRemaining} generations remaining.`,
       });
     } catch (error) {
       console.error('Error generating CV:', error);
       toast({
         title: "Generation Failed",
-        description: "Failed to generate CV. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate CV. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -152,6 +202,44 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ profile }) => {
 
   return (
     <div className="space-y-6">
+      {/* Generation Limits Banner */}
+      <Alert className={generationStats.totalRemaining > 0 ? "border-blue-200 bg-blue-50" : "border-orange-200 bg-orange-50"}>
+        <Sparkles className={`h-4 w-4 ${generationStats.totalRemaining > 0 ? "text-blue-600" : "text-orange-600"}`} />
+        <AlertDescription className={generationStats.totalRemaining > 0 ? "text-blue-800" : "text-orange-800"}>
+          {generationStats.hasPaid ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <strong>Premium Active</strong> - {generationStats.paidRemaining} paid generations remaining
+                <span className="block text-sm mt-1">
+                  Free: {generationStats.freeRemaining}/3 | Paid: {generationStats.paidRemaining}/20
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div>
+                <strong>Free Tier</strong> - {generationStats.freeRemaining}/3 free generations remaining
+                {generationStats.freeRemaining === 0 && (
+                  <span className="block text-sm mt-1">
+                    Subscribe to unlock 20 more CV generations!
+                  </span>
+                )}
+              </div>
+              {generationStats.freeRemaining === 0 && (
+                <Button 
+                  size="sm" 
+                  onClick={() => window.location.href = '/profile'}
+                  className="ml-4"
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Subscribe Now
+                </Button>
+              )}
+            </div>
+          )}
+        </AlertDescription>
+      </Alert>
+
       {/* CV Generator Section */}
       <Card>
         <CardHeader>

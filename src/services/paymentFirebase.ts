@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { PaymentRecord, UserSubscription, RefundRequest, UserProfile } from '@/types/payment';
+import { cvGenerationTracker } from './cvGenerationTracker';
 
 class PaymentFirebaseService {
   private paymentsCollection = 'payments';
@@ -168,6 +169,16 @@ class PaymentFirebaseService {
       });
       
       console.log('✅ Subscription created:', docRef.id);
+      
+      // Activate CV generations for this user
+      try {
+        await cvGenerationTracker.activatePaidSubscription(subscription.userId);
+        console.log('✅ CV generation subscription activated for user:', subscription.userId);
+      } catch (cvError) {
+        console.error('⚠️ Error activating CV generation subscription:', cvError);
+        // Don't fail the subscription creation if CV activation fails
+      }
+      
       return docRef.id;
     } catch (error) {
       console.error('❌ Error creating subscription:', error);

@@ -143,58 +143,10 @@ const CVGeneratorPage: React.FC = () => {
     );
   }
 
-  if (!hasActiveSubscription) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FileText className="h-8 w-8 text-blue-600" />
-            </div>
-            <CardTitle>CV Generator - Premium Feature</CardTitle>
-            <CardDescription>
-              AI-powered CV and cover letter generation requires an active subscription
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-sm space-y-2">
-              <p className="font-medium">What you'll get:</p>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                <li>Professional CV generation using AI</li>
-                <li>Multiple template styles</li>
-                <li>Personalized cover letters</li>
-                <li>ATS-optimized formatting</li>
-                <li>Multiple output formats</li>
-                <li>Unlimited generations</li>
-              </ul>
-            </div>
-            
-            <Alert>
-              <AlertDescription>
-                <strong>Current Status:</strong> {subscription?.status || 'No active subscription'}
-                {subscription?.endDate && (
-                  <span className="block text-sm mt-1">
-                    {subscription.status === 'active' 
-                      ? `Expires: ${subscription.endDate.toLocaleDateString()}`
-                      : `Expired: ${subscription.endDate.toLocaleDateString()}`
-                    }
-                  </span>
-                )}
-              </AlertDescription>
-            </Alert>
-
-            <Button 
-              onClick={() => window.location.href = '/subscription'} 
-              className="w-full"
-            >
-              View Subscription Plans
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
+  // Allow access with or without subscription
+  // Free tier: 3 generations
+  // Paid tier: 20 additional generations
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-4xl mx-auto">
