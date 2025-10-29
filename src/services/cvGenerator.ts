@@ -42,21 +42,49 @@ class CVGeneratorService {
       format: 'markdown'
     }
   ): Promise<string> {
+    console.log('🎯 CV Generation Started');
+    console.log('📋 Profile:', {
+      name: `${profile.firstName} ${profile.lastName}`,
+      email: profile.email,
+      industry: profile.industry,
+      experienceLevel: profile.experienceLevel,
+      skillsCount: profile.skills?.length || 0,
+      languagesCount: profile.languages?.length || 0
+    });
+    console.log('⚙️ Options:', options);
+
     const systemPrompt = this.getCVSystemPrompt(options);
     const userPrompt = this.buildUserProfilePrompt(profile, options);
 
+    console.log('📝 System prompt length:', systemPrompt.length, 'characters');
+    console.log('📝 User prompt length:', userPrompt.length, 'characters');
+    console.log('🤖 Using model: cognitivecomputations/dolphin-mistral-24b-venice-edition:free');
+
     try {
-      // Use Moonshot AI Kimi K2 for CV generation
+      console.log('⏳ Sending request to OpenRouter API...');
+      const startTime = Date.now();
+
+      // Use Dolphin Mistral for structured CV generation
       const cvContent = await openRouterService.askAboutContent(
         userPrompt,
         '',
-        'moonshotai/kimi-k2:free',
+        'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
         systemPrompt
       );
 
+      const duration = Date.now() - startTime;
+      console.log(`✅ CV Generated Successfully in ${duration}ms`);
+      console.log('📄 CV Content length:', cvContent.length, 'characters');
+      console.log('📄 CV Preview (first 200 chars):', cvContent.substring(0, 200) + '...');
+
       return cvContent;
     } catch (error) {
-      console.error('Error generating CV:', error);
+      console.error('❌ Error generating CV:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        profile: profile.email,
+        options
+      });
       throw new Error('Failed to generate CV. Please try again.');
     }
   }
@@ -70,6 +98,11 @@ class CVGeneratorService {
     companyName: string,
     jobDescription?: string
   ): Promise<string> {
+    console.log('✉️ Cover Letter Generation Started');
+    console.log('🎯 Target Job:', jobTitle, 'at', companyName);
+    console.log('📋 Candidate:', `${profile.firstName} ${profile.lastName}`, '-', profile.experienceLevel);
+    console.log('📝 Job Description provided:', !!jobDescription);
+
     const systemPrompt = `You are a professional career advisor and expert cover letter writer. 
     Create a compelling, personalized cover letter that:
     
@@ -105,17 +138,35 @@ class CVGeneratorService {
     
     Create a compelling cover letter that positions this candidate as the ideal fit for the role.`;
 
+    console.log('📝 System prompt length:', systemPrompt.length, 'characters');
+    console.log('📝 User prompt length:', userPrompt.length, 'characters');
+    console.log('🤖 Using model: cognitivecomputations/dolphin-mistral-24b-venice-edition:free');
+
     try {
+      console.log('⏳ Sending request to OpenRouter API...');
+      const startTime = Date.now();
+
       const coverLetter = await openRouterService.askAboutContent(
         userPrompt,
         '',
-        'moonshotai/kimi-k2:free',
+        'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
         systemPrompt
       );
 
+      const duration = Date.now() - startTime;
+      console.log(`✅ Cover Letter Generated Successfully in ${duration}ms`);
+      console.log('📄 Cover Letter length:', coverLetter.length, 'characters');
+      console.log('📄 Cover Letter Preview (first 150 chars):', coverLetter.substring(0, 150) + '...');
+
       return coverLetter;
     } catch (error) {
-      console.error('Error generating cover letter:', error);
+      console.error('❌ Error generating cover letter:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        jobTitle,
+        companyName,
+        profile: profile.email
+      });
       throw new Error('Failed to generate cover letter. Please try again.');
     }
   }
