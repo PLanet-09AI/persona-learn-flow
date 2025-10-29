@@ -63,16 +63,13 @@ export const userService = {
   
   async getUserById(id: string): Promise<User | null> {
     try {
-      console.log("Getting user by ID:", id);
       const userDoc = await getDoc(doc(db, 'users', id));
       
       if (!userDoc.exists()) {
-        console.log("User document does not exist");
         return null;
       }
       
       const userData = userDoc.data();
-      console.log("User data retrieved:", userData);
       return { id: userDoc.id, ...convertTimestamps(userData) } as User;
     } catch (error) {
       console.error("Error getting user by ID:", error);

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { AuthForm } from "@/components/auth/AuthForm";
-import { AuthTest } from "@/components/auth/AuthTest";
 import { Brain } from "lucide-react";
 
 const Index = () => {
@@ -21,9 +20,7 @@ const Index = () => {
   
   // Redirect authenticated users to the learning page
   useEffect(() => {
-    console.log("Index page effect - Auth state:", { isAuthenticated, isLoading, showLoader });
     if (isAuthenticated && !isLoading && !showLoader) {
-      console.log("Navigating to /learn");
       navigate('/learn');
     }
   }, [isAuthenticated, isLoading, showLoader, navigate]);
@@ -50,14 +47,6 @@ const Index = () => {
           <p className="text-muted-foreground mb-8">Personalized learning powered by AI</p>
         </div>
         <AuthForm />
-        <div className="mt-8">
-          <details className="cursor-pointer">
-            <summary className="text-sm text-muted-foreground">Authentication Testing (Click to expand)</summary>
-            <div className="mt-4">
-              <AuthTest />
-            </div>
-          </details>
-        </div>
       </div>
     );
   }

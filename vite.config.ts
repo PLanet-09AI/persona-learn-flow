@@ -19,4 +19,27 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'firebase-app': ['firebase/app'],
+          'firebase-auth': ['firebase/auth'],
+          'firebase-firestore': ['firebase/firestore'],
+        }
+      }
+    },
+    commonjsOptions: {
+      include: [/firebase/, /node_modules/],
+      transformMixedEsModules: true
+    }
+  },
+  optimizeDeps: {
+    include: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+    esbuildOptions: {
+      define: {
+        global: 'globalThis'
+      }
+    }
+  }
 }));

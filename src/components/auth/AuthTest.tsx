@@ -1,9 +1,6 @@
 import { useState } from 'react';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import { app } from '@/config/firebase';
-
-// Initialize Firebase Authentication
-const auth = getAuth(app);
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from '@/config/firebase';
 
 export const AuthTest = () => {
   const [email, setEmail] = useState('test@example.com');

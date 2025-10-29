@@ -8,13 +8,11 @@ export const LearnPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log("LearnPage effect - Auth state:", { isAuthenticated, isLoading, userId: user?.id });
     // If not authenticated and done loading, redirect to home/login page
     if (!isAuthenticated && !isLoading) {
-      console.log("Not authenticated, redirecting to home");
       navigate('/');
     }
-  }, [isAuthenticated, isLoading, navigate, user]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   if (isLoading) {
     return (

@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { 
-  getAuth, 
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   User as FirebaseUser,
-  GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult
 } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { auth, googleProvider } from '../config/firebase';
 import { userService } from '../services/firebase';
 import type { User } from '../types/models';
 
@@ -28,6 +28,27 @@ export const useAuth = () => {
     error: null
   });
 
+  // Check for redirect result on mount
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          // User successfully signed in via redirect
+          console.log('Redirect sign-in successful');
+        }
+      } catch (error) {
+        console.error('Redirect sign-in error:', error);
+        setState(prev => ({
+          ...prev,
+          error: error as Error
+        }));
+      }
+    };
+
+    handleRedirectResult();
+  }, []);
+
   const signInWithGoogle = async (retryCount = 0) => {
     const MAX_RETRIES = 3;
     
@@ -39,73 +60,51 @@ export const useAuth = () => {
     }));
 
     try {
-      const provider = new GoogleAuthProvider();
+      // Use the pre-configured provider from firebase config
+      // This avoids the "Expected a class definition" error
       
-      // Configure Google sign-in for optimal UX
-      provider.setCustomParameters({
-        prompt: 'select_account', // Always show account picker
-        access_type: 'offline', // Request refresh token
-        include_granted_scopes: 'true', // Include previously granted scopes
-        ux_mode: 'popup', // Explicitly request popup mode
-      });
-
       // Configure auth instance
       auth.useDeviceLanguage(); // Use user's preferred language
-      
-      // Calculate optimal popup dimensions based on screen size
-      const width = Math.min(600, window.innerWidth - 40); // Max width of 600px or screen width - 40px
-      const height = Math.min(700, window.innerHeight - 40); // Max height of 700px or screen height - 40px
-      
-      // Center the popup while ensuring it's fully visible
-      const left = Math.max(0, Math.floor((window.innerWidth - width) / 2));
-      const top = Math.max(0, Math.floor((window.innerHeight - height) / 2));
 
-      // Create popup options
-      const popupOptions = {
-        width,
-        height,
-        left,
-        top,
-        menubar: 'no',
-        location: 'no',
-        resizable: 'no',
-        scrollbars: 'yes',
-        status: 'no',
-        focus: true,
-      };
+      // Detect if we're in production (Netlify) or development
+      const isProduction = window.location.hostname !== 'localhost' && 
+                          window.location.hostname !== '127.0.0.1';
 
-      // Attempt sign in with enhanced error handling
-      const result = await signInWithPopup(auth, provider, popupOptions)
+      if (isProduction) {
+        // Use redirect for production (more reliable with COOP policies)
+        console.log('Using redirect authentication for production');
+        await signInWithRedirect(auth, googleProvider);
+        // The redirect will happen, no return value
+        return null;
+      }
+
+      // Use popup for development (better DX)
+      const result = await signInWithPopup(auth, googleProvider)
         .catch(async (error) => {
-          console.log('Sign-in attempt error:', error.code);
-
+          // If popup fails in production, fallback to redirect
+          if (error.code === 'auth/popup-blocked' || 
+              error.message.includes('Cross-Origin-Opener-Policy')) {
+            console.log('Popup blocked, falling back to redirect');
+            await signInWithRedirect(auth, googleProvider);
+            return null;
+          }
+          
           if (error.code === 'auth/popup-closed-by-user') {
             // If we haven't exceeded max retries, try again
             if (retryCount < MAX_RETRIES) {
-              console.log(`Retrying sign-in attempt ${retryCount + 1} of ${MAX_RETRIES}`);
               // Small delay before retry to prevent rapid-fire popups
               await new Promise(resolve => setTimeout(resolve, 500));
               return signInWithGoogle(retryCount + 1);
             } else {
-              console.log('Max retries exceeded');
               setState(prev => ({ 
                 ...prev, 
                 isLoading: false,
                 error: new Error('Sign-in process was interrupted. Please try again.')
               }));
             }
-          } else if (error.code === 'auth/popup-blocked') {
-            console.warn('Sign-in popup was blocked');
-            setState(prev => ({ 
-              ...prev, 
-              isLoading: false,
-              error: new Error('Please allow pop-ups for this site and try again')
-            }));
-          } else if (error.code === 'auth/cancelled-popup-request' || 
-                     error.code === 'auth/popup-closed-by-user') {
+          } else if (error.code === 'auth/cancelled-popup-request') {
             // Handle case where popup might have communication issues
             if (retryCount < MAX_RETRIES) {
-              console.log('Popup communication issue, retrying...');
               await new Promise(resolve => setTimeout(resolve, 500));
               return signInWithGoogle(retryCount + 1);
             }
@@ -124,7 +123,6 @@ export const useAuth = () => {
       if (!result) return null;
 
       // Sign-in successful
-      console.log('Google sign-in successful:', result.user.uid);
       setState(prev => ({ 
         ...prev, 
         isLoading: false,
@@ -145,17 +143,13 @@ export const useAuth = () => {
   };
 
   useEffect(() => {
-    console.log("Setting up auth state listener");
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
-        console.log("Auth state changed:", firebaseUser ? "User signed in" : "No user");
         if (firebaseUser) {
           // User is signed in
-          console.log("Firebase user ID:", firebaseUser.uid);
           let user = await userService.getUserById(firebaseUser.uid);
           
           if (!user) {
-            console.log("Creating new user document");
             // Create user document if it doesn't exist
             const newUser: User = {
               id: firebaseUser.uid,
@@ -169,12 +163,10 @@ export const useAuth = () => {
             };
             
             await userService.createUser(newUser);
-            console.log("New user document created");
             
             user = await userService.getUserById(firebaseUser.uid);
           }
           
-          console.log("Setting state with user:", user);
           setState({
             user,
             firebaseUser,
@@ -183,7 +175,6 @@ export const useAuth = () => {
           });
         } else {
           // User is signed out
-          console.log("Setting state with no user");
           setState({
             user: null,
             firebaseUser: null,

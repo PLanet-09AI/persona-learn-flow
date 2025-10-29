@@ -62,4 +62,5 @@
     Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization"
     Access-Control-Max-Age = "86400"
     Cross-Origin-Resource-Policy = "cross-origin"
-    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Opener-Policy = "same-origin-allow-popups"
+    Cross-Origin-Embedder-Policy = "unsafe-none"
