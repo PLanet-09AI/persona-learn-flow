@@ -212,35 +212,289 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ profile }) => {
         format: 'a4'
       });
 
-      // Set font and styling
-      doc.setFont('helvetica');
-      doc.setFontSize(10);
-      
-      // Add content with text wrapping
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 15;
+      const margin = 20;
       const maxLineWidth = pageWidth - (margin * 2);
-      
-      // Split content into lines and add to PDF
-      const lines = doc.splitTextToSize(content, maxLineWidth);
       let y = margin;
-      
-      lines.forEach((line: string) => {
-        if (y > pageHeight - margin) {
+
+      // Color scheme
+      const primaryColor: [number, number, number] = [41, 128, 185]; // Professional blue
+      const accentColor: [number, number, number] = [52, 73, 94]; // Dark gray
+      const lightGray: [number, number, number] = [236, 240, 241];
+
+      // Helper function to add new page if needed
+      const checkPageBreak = (requiredSpace: number) => {
+        if (y + requiredSpace > pageHeight - margin) {
           doc.addPage();
           y = margin;
+          return true;
         }
-        doc.text(line, margin, y);
-        y += 5;
-      });
+        return false;
+      };
+
+      // Helper function to add styled section header
+      const addSectionHeader = (title: string) => {
+        checkPageBreak(15);
+        
+        // Add colored background bar
+        doc.setFillColor(...primaryColor);
+        doc.rect(margin - 5, y - 2, maxLineWidth + 10, 8, 'F');
+        
+        // Add section title
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text(title.toUpperCase(), margin, y + 4);
+        
+        y += 12;
+        doc.setTextColor(0, 0, 0);
+      };
+
+      // Helper function to add regular text with proper formatting
+      const addText = (text: string, options: { bold?: boolean; fontSize?: number; indent?: number; spacing?: number } = {}) => {
+        const { bold = false, fontSize = 10, indent = 0, spacing = 5 } = options;
+        
+        checkPageBreak(spacing + 5);
+        
+        doc.setFont('helvetica', bold ? 'bold' : 'normal');
+        doc.setFontSize(fontSize);
+        
+        const lines = doc.splitTextToSize(text, maxLineWidth - indent);
+        lines.forEach((line: string) => {
+          checkPageBreak(spacing);
+          doc.text(line, margin + indent, y);
+          y += spacing;
+        });
+      };
+
+      if (type === 'cv') {
+        // ============ CV STYLING ============
+        
+        // Parse CV content
+        const lines = content.split('\n');
+        let currentSection = '';
+        
+        // Add header with accent bar at top
+        doc.setFillColor(...primaryColor);
+        doc.rect(0, 0, pageWidth, 12, 'F');
+        y = 15;
+
+        lines.forEach((line, index) => {
+          const trimmed = line.trim();
+          
+          // Skip empty lines at the beginning
+          if (!trimmed && y < 30) return;
+          
+          // Detect name (usually first significant line)
+          if (index < 5 && trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('**') && trimmed.length > 3 && currentSection === '') {
+            // Name styling
+            doc.setTextColor(...primaryColor);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.text(trimmed, margin, y);
+            y += 10;
+            
+            // Add decorative line under name
+            doc.setDrawColor(...primaryColor);
+            doc.setLineWidth(0.5);
+            doc.line(margin, y - 3, pageWidth - margin, y - 3);
+            y += 5;
+            return;
+          }
+          
+          // Detect contact info (email, phone, etc.)
+          if ((trimmed.includes('@') || trimmed.includes('tel:') || trimmed.includes('linkedin') || trimmed.includes('github')) && y < 50) {
+            doc.setTextColor(...accentColor);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            const contactLines = doc.splitTextToSize(trimmed.replace(/\*\*/g, '').replace(/[#*]/g, ''), maxLineWidth);
+            contactLines.forEach((cLine: string) => {
+              doc.text(cLine, margin, y);
+              y += 4;
+            });
+            y += 3;
+            return;
+          }
+          
+          // Detect section headers (Markdown headers or bold text)
+          if (trimmed.startsWith('##') || (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length < 50)) {
+            const sectionTitle = trimmed.replace(/^#+\s*/, '').replace(/\*\*/g, '').trim();
+            if (sectionTitle && sectionTitle.length > 2) {
+              currentSection = sectionTitle;
+              addSectionHeader(sectionTitle);
+              return;
+            }
+          }
+          
+          // Detect subsection headers (job titles, degrees, etc.)
+          if (trimmed.startsWith('###') || (trimmed.startsWith('**') && trimmed.includes('|'))) {
+            const subTitle = trimmed.replace(/^#+\s*/, '').replace(/\*\*/g, '').trim();
+            checkPageBreak(8);
+            doc.setTextColor(...accentColor);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            const subLines = doc.splitTextToSize(subTitle, maxLineWidth);
+            subLines.forEach((sLine: string) => {
+              doc.text(sLine, margin, y);
+              y += 5;
+            });
+            y += 2;
+            return;
+          }
+          
+          // Detect bullet points
+          if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
+            const bulletText = trimmed.replace(/^[•\-*]\s*/, '');
+            checkPageBreak(6);
+            
+            // Add bullet point
+            doc.setFillColor(...primaryColor);
+            doc.circle(margin + 2, y - 1.5, 0.8, 'F');
+            
+            // Add bullet text
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            const bulletLines = doc.splitTextToSize(bulletText, maxLineWidth - 8);
+            bulletLines.forEach((bLine: string, bIndex: number) => {
+              doc.text(bLine, margin + 6, y);
+              if (bIndex < bulletLines.length - 1) y += 4;
+            });
+            y += 5;
+            return;
+          }
+          
+          // Regular paragraph text
+          if (trimmed) {
+            const cleanText = trimmed.replace(/\*\*/g, '');
+            addText(cleanText, { fontSize: 10, spacing: 4 });
+            return;
+          }
+          
+          // Empty lines (spacing)
+          if (!trimmed && y > 30) {
+            y += 3;
+          }
+        });
+
+      } else {
+        // ============ COVER LETTER STYLING ============
+        
+        // Add elegant header
+        doc.setFillColor(...primaryColor);
+        doc.rect(0, 0, pageWidth, 8, 'F');
+        y = 20;
+
+        const lines = content.split('\n');
+        let isHeaderSection = true;
+        
+        lines.forEach((line) => {
+          const trimmed = line.trim();
+          
+          if (!trimmed) {
+            y += 4;
+            return;
+          }
+          
+          // Detect sender info (first few lines before date)
+          if (isHeaderSection && y < 60 && !trimmed.match(/^\d{1,2}\s+\w+\s+\d{4}/)) {
+            doc.setTextColor(...accentColor);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            addText(trimmed, { fontSize: 11, spacing: 4, bold: true });
+            return;
+          }
+          
+          // Detect date
+          if (trimmed.match(/^\d{1,2}\s+\w+\s+\d{4}/) || trimmed.match(/^\w+\s+\d{1,2},\s+\d{4}/)) {
+            isHeaderSection = false;
+            y += 5;
+            doc.setTextColor(...primaryColor);
+            doc.setFont('helvetica', 'italic');
+            doc.setFontSize(10);
+            addText(trimmed, { fontSize: 10, spacing: 5 });
+            y += 5;
+            return;
+          }
+          
+          // Detect recipient info (after date, before greeting)
+          if (!isHeaderSection && !trimmed.startsWith('Dear') && !trimmed.startsWith('Hi') && y < 100) {
+            doc.setTextColor(...accentColor);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            addText(trimmed, { fontSize: 10, spacing: 4 });
+            return;
+          }
+          
+          // Detect greeting
+          if (trimmed.startsWith('Dear') || trimmed.startsWith('Hi') || trimmed.startsWith('Hello')) {
+            y += 3;
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            addText(trimmed, { fontSize: 11, spacing: 5, bold: true });
+            y += 3;
+            return;
+          }
+          
+          // Detect closing
+          if (trimmed.startsWith('Sincerely') || trimmed.startsWith('Best regards') || trimmed.startsWith('Kind regards') || trimmed.startsWith('Yours')) {
+            y += 5;
+            doc.setTextColor(...accentColor);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            addText(trimmed, { fontSize: 11, spacing: 5, bold: true });
+            y += 15; // Space for signature
+            return;
+          }
+          
+          // Regular paragraph text
+          doc.setTextColor(0, 0, 0);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(10);
+          const paraLines = doc.splitTextToSize(trimmed, maxLineWidth);
+          paraLines.forEach((pLine: string) => {
+            checkPageBreak(5);
+            doc.text(pLine, margin, y);
+            y += 5;
+          });
+          y += 2; // Paragraph spacing
+        });
+      }
+
+      // Add footer with page numbers and subtle styling
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        
+        // Add subtle footer line
+        doc.setDrawColor(...lightGray);
+        doc.setLineWidth(0.3);
+        doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+        
+        // Add page number
+        doc.setTextColor(...accentColor);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text(
+          `Page ${i} of ${pageCount}`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: 'center' }
+        );
+        
+        // Add document title
+        const docTitle = type === 'cv' ? 'Curriculum Vitae' : 'Cover Letter';
+        doc.text(docTitle, margin, pageHeight - 10);
+      }
       
       // Save the PDF
       doc.save(filename);
       
       toast({
-        title: "PDF Downloaded!",
-        description: `${filename} has been saved as PDF.`,
+        title: "Professional PDF Downloaded!",
+        description: `${filename} has been saved with styled formatting.`,
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
