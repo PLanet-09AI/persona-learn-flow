@@ -111,6 +111,13 @@ export const PaymentSuccess = () => {
             </Button>
             
             <Button 
+              onClick={() => navigate('/cv-generator')}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              Generate CV
+            </Button>
+            
+            <Button 
               variant="outline"
               onClick={() => navigate('/profile')}
               className="w-full"
