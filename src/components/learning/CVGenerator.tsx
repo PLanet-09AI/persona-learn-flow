@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Download, FileText, Mail, Copy, Check, Image as ImageIcon, CreditCard, Sparkles, FileDown } from 'lucide-react';
+import { Loader2, Download, FileText, Mail, Copy, Check, Image as ImageIcon, CreditCard, Sparkles, FileDown, Edit, Save, X, Wand2 } from 'lucide-react';
 import { cvGeneratorService } from '@/services/cvGenerator';
 import { cvGenerationTracker } from '@/services/cvGenerationTracker';
 import { paymentFirebaseService } from '@/services/paymentFirebase';
@@ -31,6 +31,20 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ profile }) => {
   const [generatedCoverLetter, setGeneratedCoverLetter] = useState<string>('');
   const [copiedCV, setCopiedCV] = useState(false);
   const [copiedCoverLetter, setCopiedCoverLetter] = useState(false);
+  
+  // Editing states
+  const [isEditingCV, setIsEditingCV] = useState(false);
+  const [isEditingCoverLetter, setIsEditingCoverLetter] = useState(false);
+  const [editedCVContent, setEditedCVContent] = useState<string>('');
+  const [editedCoverLetterContent, setEditedCoverLetterContent] = useState<string>('');
+  
+  // AI Edit states
+  const [showAIEditCV, setShowAIEditCV] = useState(false);
+  const [showAIEditCoverLetter, setShowAIEditCoverLetter] = useState(false);
+  const [aiEditPrompt, setAIEditPrompt] = useState('');
+  const [aiEditPromptCoverLetter, setAIEditPromptCoverLetter] = useState('');
+  const [aiEditLoading, setAIEditLoading] = useState(false);
+  const [aiEditLoadingCoverLetter, setAIEditLoadingCoverLetter] = useState(false);
   
   // Generation tracking
   const [generationStats, setGenerationStats] = useState({
@@ -181,6 +195,131 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ profile }) => {
         description: "Failed to copy to clipboard.",
         variant: "destructive",
       });
+    }
+  };
+
+  // Manual editing handlers
+  const handleStartEditCV = () => {
+    setEditedCVContent(generatedCV);
+    setIsEditingCV(true);
+  };
+
+  const handleSaveEditCV = () => {
+    setGeneratedCV(editedCVContent);
+    setIsEditingCV(false);
+    toast({
+      title: "CV Updated!",
+      description: "Your manual edits have been saved.",
+    });
+  };
+
+  const handleCancelEditCV = () => {
+    setIsEditingCV(false);
+    setEditedCVContent('');
+  };
+
+  const handleStartEditCoverLetter = () => {
+    setEditedCoverLetterContent(generatedCoverLetter);
+    setIsEditingCoverLetter(true);
+  };
+
+  const handleSaveEditCoverLetter = () => {
+    setGeneratedCoverLetter(editedCoverLetterContent);
+    setIsEditingCoverLetter(false);
+    toast({
+      title: "Cover Letter Updated!",
+      description: "Your manual edits have been saved.",
+    });
+  };
+
+  const handleCancelEditCoverLetter = () => {
+    setIsEditingCoverLetter(false);
+    setEditedCoverLetterContent('');
+  };
+
+  // AI Edit handlers
+  const handleAIEditCV = async () => {
+    if (!aiEditPrompt.trim()) {
+      toast({
+        title: "Prompt Required",
+        description: "Please enter instructions for how to edit the CV.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAIEditLoading(true);
+    try {
+      console.log('🤖 Starting AI CV edit with prompt:', aiEditPrompt);
+      
+      const aiEditedCV = await cvGeneratorService.editCVWithAI(
+        generatedCV,
+        aiEditPrompt,
+        profile,
+        format
+      );
+
+      console.log('✅ AI CV edit complete');
+      setGeneratedCV(aiEditedCV);
+      setAIEditPrompt('');
+      setShowAIEditCV(false);
+
+      toast({
+        title: "CV Edited with AI!",
+        description: "Your CV has been updated based on your instructions.",
+      });
+    } catch (error) {
+      console.error('❌ AI CV edit error:', error);
+      toast({
+        title: "AI Edit Failed",
+        description: error instanceof Error ? error.message : "Failed to edit CV with AI.",
+        variant: "destructive",
+      });
+    } finally {
+      setAIEditLoading(false);
+    }
+  };
+
+  const handleAIEditCoverLetter = async () => {
+    if (!aiEditPromptCoverLetter.trim()) {
+      toast({
+        title: "Prompt Required",
+        description: "Please enter instructions for how to edit the cover letter.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAIEditLoadingCoverLetter(true);
+    try {
+      console.log('🤖 Starting AI cover letter edit with prompt:', aiEditPromptCoverLetter);
+      
+      const aiEditedCoverLetter = await cvGeneratorService.editCoverLetterWithAI(
+        generatedCoverLetter,
+        aiEditPromptCoverLetter,
+        profile,
+        jobTitle,
+        companyName
+      );
+
+      console.log('✅ AI cover letter edit complete');
+      setGeneratedCoverLetter(aiEditedCoverLetter);
+      setAIEditPromptCoverLetter('');
+      setShowAIEditCoverLetter(false);
+
+      toast({
+        title: "Cover Letter Edited with AI!",
+        description: "Your cover letter has been updated based on your instructions.",
+      });
+    } catch (error) {
+      console.error('❌ AI cover letter edit error:', error);
+      toast({
+        title: "AI Edit Failed",
+        description: error instanceof Error ? error.message : "Failed to edit cover letter with AI.",
+        variant: "destructive",
+      });
+    } finally {
+      setAIEditLoadingCoverLetter(false);
     }
   };
 
@@ -678,41 +817,162 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ profile }) => {
                   </div>
                   {generatedCV && (
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => copyToClipboard(generatedCV, 'cv')}
-                        title="Copy to clipboard"
-                      >
-                        {copiedCV ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                        Copy
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => downloadAsFile(generatedCV, `${profile.firstName}_${profile.lastName}_CV.${format === 'markdown' ? 'md' : format === 'html' ? 'html' : 'tex'}`)}
-                        title="Download as text"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </Button>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => exportToPDF(generatedCV, `${profile.firstName}_${profile.lastName}_CV.pdf`, 'cv')}
-                        title="Export as PDF"
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        Export PDF
-                      </Button>
+                      {!isEditingCV && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleStartEditCV}
+                            title="Edit manually"
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowAIEditCV(!showAIEditCV)}
+                            title="Edit with AI"
+                          >
+                            <Wand2 className="h-4 w-4 mr-2" />
+                            AI Edit
+                          </Button>
+                        </>
+                      )}
+                      {isEditingCV && (
+                        <>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={handleSaveEditCV}
+                            title="Save changes"
+                          >
+                            <Save className="h-4 w-4 mr-2" />
+                            Save
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCancelEditCV}
+                            title="Cancel editing"
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Cancel
+                          </Button>
+                        </>
+                      )}
+                      {!isEditingCV && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyToClipboard(generatedCV, 'cv')}
+                            title="Copy to clipboard"
+                          >
+                            {copiedCV ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                            Copy
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadAsFile(generatedCV, `${profile.firstName}_${profile.lastName}_CV.${format === 'markdown' ? 'md' : format === 'html' ? 'html' : 'tex'}`)}
+                            title="Download as text"
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => exportToPDF(generatedCV, `${profile.firstName}_${profile.lastName}_CV.pdf`, 'cv')}
+                            title="Export as PDF"
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Export PDF
+                          </Button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
               </CardHeader>
               <CardContent>
                 {generatedCV ? (
-                  <div className="border-2 rounded-lg p-8 bg-white dark:bg-gray-950 min-h-[600px]">
-                    <CVPreviewFormatter content={generatedCV} format={format} />
+                  <div className="space-y-4">
+                    {/* AI Edit Prompt Section */}
+                    {showAIEditCV && !isEditingCV && (
+                      <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950">
+                        <CardContent className="pt-4">
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Wand2 className="h-5 w-5 text-blue-600" />
+                              <h4 className="font-semibold text-blue-900 dark:text-blue-100">Edit CV with AI</h4>
+                            </div>
+                            <p className="text-sm text-blue-800 dark:text-blue-200">
+                              Tell the AI how you want to improve your CV. It will maintain ATS compatibility and professional standards.
+                            </p>
+                            <Textarea
+                              value={aiEditPrompt}
+                              onChange={(e) => setAIEditPrompt(e.target.value)}
+                              placeholder="e.g., 'Make the professional summary more impactful and quantify achievements in the experience section'"
+                              rows={3}
+                              className="bg-white dark:bg-gray-900"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={handleAIEditCV}
+                                disabled={aiEditLoading || !aiEditPrompt.trim()}
+                                className="flex-1"
+                              >
+                                {aiEditLoading ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    AI is Editing...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Wand2 className="mr-2 h-4 w-4" />
+                                    Apply AI Edits
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setShowAIEditCV(false);
+                                  setAIEditPrompt('');
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* CV Content - Editable or Preview */}
+                    {isEditingCV ? (
+                      <div className="space-y-3">
+                        <Alert className="border-orange-200 bg-orange-50">
+                          <Edit className="h-4 w-4 text-orange-600" />
+                          <AlertDescription className="text-orange-800">
+                            <strong>Manual Edit Mode:</strong> You can now edit the CV directly. Click "Save" when done or "Cancel" to discard changes.
+                          </AlertDescription>
+                        </Alert>
+                        <Textarea
+                          value={editedCVContent}
+                          onChange={(e) => setEditedCVContent(e.target.value)}
+                          rows={25}
+                          className="font-mono text-sm"
+                          placeholder="Edit your CV content here..."
+                        />
+                      </div>
+                    ) : (
+                      <div className="border-2 rounded-lg p-8 bg-white dark:bg-gray-950 min-h-[600px]">
+                        <CVPreviewFormatter content={generatedCV} format={format} />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="border-2 border-dashed rounded-lg p-12 min-h-[600px] flex items-center justify-center">
@@ -820,43 +1080,164 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ profile }) => {
                   </div>
                   {generatedCoverLetter && (
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => copyToClipboard(generatedCoverLetter, 'coverLetter')}
-                        title="Copy to clipboard"
-                      >
-                        {copiedCoverLetter ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                        Copy
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => downloadAsFile(generatedCoverLetter, `${profile.firstName}_${profile.lastName}_CoverLetter_${companyName.replace(/\s+/g, '_')}.txt`)}
-                        title="Download as text"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </Button>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => exportToPDF(generatedCoverLetter, `${profile.firstName}_${profile.lastName}_CoverLetter_${companyName.replace(/\s+/g, '_')}.pdf`, 'coverLetter')}
-                        title="Export as PDF"
-                      >
-                        <Mail className="h-4 w-4 mr-2" />
-                        Export PDF
-                      </Button>
+                      {!isEditingCoverLetter && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleStartEditCoverLetter}
+                            title="Edit manually"
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowAIEditCoverLetter(!showAIEditCoverLetter)}
+                            title="Edit with AI"
+                          >
+                            <Wand2 className="h-4 w-4 mr-2" />
+                            AI Edit
+                          </Button>
+                        </>
+                      )}
+                      {isEditingCoverLetter && (
+                        <>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={handleSaveEditCoverLetter}
+                            title="Save changes"
+                          >
+                            <Save className="h-4 w-4 mr-2" />
+                            Save
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCancelEditCoverLetter}
+                            title="Cancel editing"
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Cancel
+                          </Button>
+                        </>
+                      )}
+                      {!isEditingCoverLetter && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyToClipboard(generatedCoverLetter, 'coverLetter')}
+                            title="Copy to clipboard"
+                          >
+                            {copiedCoverLetter ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                            Copy
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadAsFile(generatedCoverLetter, `${profile.firstName}_${profile.lastName}_CoverLetter_${companyName.replace(/\s+/g, '_')}.txt`)}
+                            title="Download as text"
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => exportToPDF(generatedCoverLetter, `${profile.firstName}_${profile.lastName}_CoverLetter_${companyName.replace(/\s+/g, '_')}.pdf`, 'coverLetter')}
+                            title="Export as PDF"
+                          >
+                            <Mail className="h-4 w-4 mr-2" />
+                            Export PDF
+                          </Button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
               </CardHeader>
               <CardContent>
                 {generatedCoverLetter ? (
-                  <div className="border-2 rounded-lg p-8 bg-white dark:bg-gray-950 min-h-[600px]">
-                    <div className="text-sm leading-relaxed whitespace-pre-wrap font-serif max-w-3xl">
-                      {generatedCoverLetter}
-                    </div>
+                  <div className="space-y-4">
+                    {/* AI Edit Prompt Section */}
+                    {showAIEditCoverLetter && !isEditingCoverLetter && (
+                      <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950">
+                        <CardContent className="pt-4">
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Wand2 className="h-5 w-5 text-blue-600" />
+                              <h4 className="font-semibold text-blue-900 dark:text-blue-100">Edit Cover Letter with AI</h4>
+                            </div>
+                            <p className="text-sm text-blue-800 dark:text-blue-200">
+                              Tell the AI how you want to improve your cover letter. It will maintain ATS compatibility and personalization.
+                            </p>
+                            <Textarea
+                              value={aiEditPromptCoverLetter}
+                              onChange={(e) => setAIEditPromptCoverLetter(e.target.value)}
+                              placeholder="e.g., 'Make the opening more engaging and add specific examples of my achievements relevant to this role'"
+                              rows={3}
+                              className="bg-white dark:bg-gray-900"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={handleAIEditCoverLetter}
+                                disabled={aiEditLoadingCoverLetter || !aiEditPromptCoverLetter.trim()}
+                                className="flex-1"
+                              >
+                                {aiEditLoadingCoverLetter ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    AI is Editing...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Wand2 className="mr-2 h-4 w-4" />
+                                    Apply AI Edits
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setShowAIEditCoverLetter(false);
+                                  setAIEditPromptCoverLetter('');
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Cover Letter Content - Editable or Preview */}
+                    {isEditingCoverLetter ? (
+                      <div className="space-y-3">
+                        <Alert className="border-orange-200 bg-orange-50">
+                          <Edit className="h-4 w-4 text-orange-600" />
+                          <AlertDescription className="text-orange-800">
+                            <strong>Manual Edit Mode:</strong> You can now edit the cover letter directly. Click "Save" when done or "Cancel" to discard changes.
+                          </AlertDescription>
+                        </Alert>
+                        <Textarea
+                          value={editedCoverLetterContent}
+                          onChange={(e) => setEditedCoverLetterContent(e.target.value)}
+                          rows={25}
+                          className="font-serif text-sm"
+                          placeholder="Edit your cover letter content here..."
+                        />
+                      </div>
+                    ) : (
+                      <div className="border-2 rounded-lg p-8 bg-white dark:bg-gray-950 min-h-[600px]">
+                        <div className="text-sm leading-relaxed whitespace-pre-wrap font-serif max-w-3xl">
+                          {generatedCoverLetter}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="border-2 border-dashed rounded-lg p-12 min-h-[600px] flex items-center justify-center">

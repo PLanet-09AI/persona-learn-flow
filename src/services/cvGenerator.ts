@@ -328,6 +328,187 @@ Generate a comprehensive, professional CV that showcases this candidate's potent
   getAvailableTemplates() {
     return this.cvTemplates;
   }
+
+  /**
+   * Edit CV with AI based on user instructions
+   */
+  async editCVWithAI(
+    currentCV: string,
+    editInstructions: string,
+    profile: UserProfile,
+    format: 'markdown' | 'html' | 'latex'
+  ): Promise<string> {
+    console.log('🤖 AI CV Edit Started');
+    console.log('📝 Edit Instructions:', editInstructions);
+    console.log('📄 Current CV length:', currentCV.length, 'characters');
+
+    const startTime = Date.now();
+
+    const systemPrompt = `You are an expert CV editor and career consultant specializing in creating ATS (Applicant Tracking System) friendly CVs.
+
+Your task is to edit the provided CV based on the user's instructions while maintaining:
+1. **ATS Compatibility**: Use standard formatting, clear section headers, and keyword optimization
+2. **Professional Tone**: Keep language professional and achievement-focused
+3. **Accuracy**: Don't invent information - only modify what's requested
+4. **Format Consistency**: Maintain the ${format} format structure
+5. **Industry Standards**: Follow best practices for ${profile.industry} industry
+
+**CRITICAL ATS REQUIREMENTS:**
+- Use standard section headers (PROFESSIONAL SUMMARY, EXPERIENCE, EDUCATION, SKILLS, etc.)
+- Avoid complex formatting, tables, or graphics that confuse ATS
+- Use standard bullet points (•, -, or *)
+- Include relevant keywords from the job/industry
+- Use clear, simple fonts and layouts
+- Avoid headers/footers with critical information
+- Use standard date formats
+- Include full contact information
+
+**EDITING PRINCIPLES:**
+- Make changes that improve clarity and impact
+- Quantify achievements where possible (e.g., "increased sales by 30%")
+- Use strong action verbs (led, developed, implemented, achieved)
+- Keep sentences concise and impactful
+- Remove redundancy and filler words
+- Ensure consistent tense (past for previous jobs, present for current)
+
+**USER CONTEXT:**
+- Name: ${profile.firstName} ${profile.lastName}
+- Industry: ${profile.industry}
+- Experience Level: ${profile.experienceLevel}
+- Target Role: ${profile.targetJobTitle || 'Not specified'}
+
+Return ONLY the edited CV content in ${format} format. Do NOT include any explanations, comments, or meta-text.`;
+
+    const userPrompt = `Current CV:
+---
+${currentCV}
+---
+
+Edit Instructions: ${editInstructions}
+
+Please edit the CV according to the instructions above while maintaining ATS compatibility and professional standards. Return the complete edited CV.`;
+
+    try {
+      const response = await openRouterService.askAboutContent(
+        userPrompt,
+        '', // No context content needed as CV is in the prompt
+        'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
+        systemPrompt
+      );
+
+      const editedCV = response.trim();
+      const endTime = Date.now();
+
+      console.log('✅ AI CV Edit Complete:', {
+        originalLength: currentCV.length,
+        editedLength: editedCV.length,
+        timeTaken: `${(endTime - startTime) / 1000}s`,
+        instructionsApplied: editInstructions.substring(0, 100) + '...'
+      });
+
+      console.log('📄 Edited CV Preview:', editedCV.substring(0, 200) + '...');
+
+      return editedCV;
+    } catch (error) {
+      console.error('❌ AI CV Edit Failed:', error);
+      throw new Error(`Failed to edit CV with AI: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Edit Cover Letter with AI based on user instructions
+   */
+  async editCoverLetterWithAI(
+    currentCoverLetter: string,
+    editInstructions: string,
+    profile: UserProfile,
+    jobTitle: string,
+    companyName: string
+  ): Promise<string> {
+    console.log('🤖 AI Cover Letter Edit Started');
+    console.log('📝 Edit Instructions:', editInstructions);
+    console.log('📄 Current Cover Letter length:', currentCoverLetter.length, 'characters');
+
+    const startTime = Date.now();
+
+    const systemPrompt = `You are an expert cover letter writer and career consultant specializing in creating compelling, ATS-friendly cover letters.
+
+Your task is to edit the provided cover letter based on the user's instructions while maintaining:
+1. **ATS Compatibility**: Use standard business letter format with clear structure
+2. **Professional Tone**: Maintain appropriate formality and enthusiasm
+3. **Personalization**: Keep content specific to ${companyName} and ${jobTitle}
+4. **Authenticity**: Don't invent qualifications or experience
+5. **Impact**: Focus on value proposition and relevant achievements
+
+**CRITICAL ATS REQUIREMENTS:**
+- Use standard business letter format
+- Include proper header with contact information
+- Use clear, simple formatting (no tables, columns, or graphics)
+- Include relevant keywords from job title and industry
+- Keep length to one page (300-400 words)
+- Use standard salutation and closing
+
+**EDITING PRINCIPLES:**
+- Make opening paragraph engaging and specific
+- Demonstrate knowledge of the company
+- Connect candidate's experience to job requirements
+- Show enthusiasm and cultural fit
+- Use specific examples and achievements
+- End with strong call to action
+- Remove clichés and generic phrases
+
+**USER CONTEXT:**
+- Name: ${profile.firstName} ${profile.lastName}
+- Email: ${profile.email}
+- Industry: ${profile.industry}
+- Experience Level: ${profile.experienceLevel}
+- Target Company: ${companyName}
+- Target Position: ${jobTitle}
+
+**IMPORTANT**: Use ACTUAL user data:
+- Real name: ${profile.firstName} ${profile.lastName}
+- Real email: ${profile.email}
+- Real phone: ${profile.phone || 'Not provided'}
+
+Do NOT use placeholders like [Your Name], [Email], [Phone Number]. Use the actual data provided.
+
+Return ONLY the edited cover letter content. Do NOT include any explanations, comments, or meta-text.`;
+
+    const userPrompt = `Current Cover Letter:
+---
+${currentCoverLetter}
+---
+
+Edit Instructions: ${editInstructions}
+
+Please edit the cover letter according to the instructions above while maintaining ATS compatibility and professional standards. Return the complete edited cover letter with actual user information (NO placeholders).`;
+
+    try {
+      const response = await openRouterService.askAboutContent(
+        userPrompt,
+        '', // No context content needed as cover letter is in the prompt
+        'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
+        systemPrompt
+      );
+
+      const editedCoverLetter = response.trim();
+      const endTime = Date.now();
+
+      console.log('✅ AI Cover Letter Edit Complete:', {
+        originalLength: currentCoverLetter.length,
+        editedLength: editedCoverLetter.length,
+        timeTaken: `${(endTime - startTime) / 1000}s`,
+        instructionsApplied: editInstructions.substring(0, 100) + '...'
+      });
+
+      console.log('📄 Edited Cover Letter Preview:', editedCoverLetter.substring(0, 200) + '...');
+
+      return editedCoverLetter;
+    } catch (error) {
+      console.error('❌ AI Cover Letter Edit Failed:', error);
+      throw new Error(`Failed to edit cover letter with AI: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 }
 
 export const cvGeneratorService = new CVGeneratorService();
