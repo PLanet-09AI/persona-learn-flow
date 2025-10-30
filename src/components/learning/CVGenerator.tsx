@@ -9,7 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Download, FileText, Mail, Copy, Check, Image as ImageIcon, CreditCard, Sparkles } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Download, FileText, Mail, Copy, Check, Image as ImageIcon, CreditCard, Sparkles, FileDown } from 'lucide-react';
 import { cvGeneratorService } from '@/services/cvGenerator';
 import { cvGenerationTracker } from '@/services/cvGenerationTracker';
 import { paymentFirebaseService } from '@/services/paymentFirebase';
@@ -200,8 +201,61 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ profile }) => {
     });
   };
 
+  const exportToPDF = async (content: string, filename: string, type: 'cv' | 'coverLetter') => {
+    try {
+      // Dynamically import jsPDF
+      const { jsPDF } = await import('jspdf');
+      
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // Set font and styling
+      doc.setFont('helvetica');
+      doc.setFontSize(10);
+      
+      // Add content with text wrapping
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 15;
+      const maxLineWidth = pageWidth - (margin * 2);
+      
+      // Split content into lines and add to PDF
+      const lines = doc.splitTextToSize(content, maxLineWidth);
+      let y = margin;
+      
+      lines.forEach((line: string) => {
+        if (y > pageHeight - margin) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(line, margin, y);
+        y += 5;
+      });
+      
+      // Save the PDF
+      doc.save(filename);
+      
+      toast({
+        title: "PDF Downloaded!",
+        description: `${filename} has been saved as PDF.`,
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "PDF Export Failed",
+        description: "Failed to generate PDF. Downloading as text file instead.",
+        variant: "destructive",
+      });
+      // Fallback to text download
+      downloadAsFile(content, filename.replace('.pdf', '.txt'));
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen w-full max-w-7xl mx-auto p-6 space-y-6">
       {/* Generation Limits Banner */}
       <Alert className={generationStats.totalRemaining > 0 ? "border-blue-200 bg-blue-50" : "border-orange-200 bg-orange-50"}>
         <Sparkles className={`h-4 w-4 ${generationStats.totalRemaining > 0 ? "text-blue-600" : "text-orange-600"}`} />
@@ -240,245 +294,330 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ profile }) => {
         </AlertDescription>
       </Alert>
 
-      {/* CV Generator Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+      {/* Main Content with Tabs */}
+      <Tabs defaultValue="cv" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 h-12">
+          <TabsTrigger value="cv" className="text-base">
+            <FileText className="h-4 w-4 mr-2" />
             CV Generator
-          </CardTitle>
-          <CardDescription>
-            Generate a professional CV using AI based on your profile information
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Template Selection */}
-          <div className="space-y-3">
-            <Label>Template Style</Label>
-            <Select value={template} onValueChange={(value: any) => setTemplate(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(templates).map(([key, template]) => (
-                  <SelectItem key={key} value={key}>
-                    <div className="flex flex-col items-start">
-                      <span className="font-medium">{template.name}</span>
-                      <span className="text-sm text-muted-foreground">{template.description}</span>
+          </TabsTrigger>
+          <TabsTrigger value="cover-letter" className="text-base">
+            <Mail className="h-4 w-4 mr-2" />
+            Cover Letter
+          </TabsTrigger>
+        </TabsList>
+
+        {/* CV Tab Content */}
+        <TabsContent value="cv" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[calc(100vh-16rem)]">
+            {/* Left Panel - Controls */}
+            <Card className="lg:col-span-1 h-fit">
+              <CardHeader>
+                <CardTitle className="text-xl">CV Settings</CardTitle>
+                <CardDescription>
+                  Customize your CV template and format
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Template Selection */}
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold">Template Style</Label>
+                  <Select value={template} onValueChange={(value: any) => setTemplate(value)}>
+                    <SelectTrigger className="h-auto py-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(templates).map(([key, template]) => (
+                        <SelectItem key={key} value={key} className="py-3">
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">{template.name}</span>
+                            <span className="text-sm text-muted-foreground">{template.description}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Format Selection */}
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold">Output Format</Label>
+                  <Select value={format} onValueChange={(value: any) => setFormat(value)}>
+                    <SelectTrigger className="h-auto py-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="markdown" className="py-3">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">Markdown</span>
+                          <span className="text-sm text-muted-foreground">Clean, readable format</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="html" className="py-3">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">HTML</span>
+                          <span className="text-sm text-muted-foreground">Web-ready format</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="latex" className="py-3">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">LaTeX</span>
+                          <span className="text-sm text-muted-foreground">Professional typesetting</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Photo Option */}
+                <div className="flex items-start justify-between p-4 border-2 rounded-lg bg-blue-50 dark:bg-blue-950">
+                  <div className="flex-1">
+                    <Label htmlFor="include-photo" className="flex items-center gap-2 cursor-pointer text-base font-semibold">
+                      <ImageIcon className="h-5 w-5 text-blue-600" />
+                      Include Photo
+                    </Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Add a professional photo section (4x5cm)
+                    </p>
+                  </div>
+                  <Switch
+                    id="include-photo"
+                    checked={includePhoto}
+                    onCheckedChange={setIncludePhoto}
+                    className="mt-1"
+                  />
+                </div>
+
+                <Separator />
+
+                <Button onClick={handleGenerateCV} disabled={loading} className="w-full h-12 text-base">
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Generating CV...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-2 h-5 w-5" />
+                      Generate CV
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Right Panel - Preview */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl">CV Preview</CardTitle>
+                    <CardDescription className="mt-1">
+                      {generatedCV ? (
+                        <span className="text-sm">
+                          Format: <span className="font-medium capitalize">{format}</span>
+                        </span>
+                      ) : (
+                        'Your generated CV will appear here'
+                      )}
+                    </CardDescription>
+                  </div>
+                  {generatedCV && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(generatedCV, 'cv')}
+                        title="Copy to clipboard"
+                      >
+                        {copiedCV ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                        Copy
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadAsFile(generatedCV, `${profile.firstName}_${profile.lastName}_CV.${format === 'markdown' ? 'md' : format === 'html' ? 'html' : 'tex'}`)}
+                        title="Download as text"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => exportToPDF(generatedCV, `${profile.firstName}_${profile.lastName}_CV.pdf`, 'cv')}
+                        title="Export as PDF"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Export PDF
+                      </Button>
                     </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Format Selection */}
-          <div className="space-y-3">
-            <Label>Output Format</Label>
-            <Select value={format} onValueChange={(value: any) => setFormat(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="markdown">
-                  <div className="flex flex-col items-start">
-                    <span>Markdown</span>
-                    <span className="text-sm text-muted-foreground">Clean, readable format</span>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {generatedCV ? (
+                  <div className="border-2 rounded-lg p-8 bg-white dark:bg-gray-950 min-h-[600px]">
+                    <CVPreviewFormatter content={generatedCV} format={format} />
                   </div>
-                </SelectItem>
-                <SelectItem value="html">
-                  <div className="flex flex-col items-start">
-                    <span>HTML</span>
-                    <span className="text-sm text-muted-foreground">Web-ready format</span>
+                ) : (
+                  <div className="border-2 border-dashed rounded-lg p-12 min-h-[600px] flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
+                      <FileText className="h-16 w-16 mx-auto mb-4 opacity-20" />
+                      <p className="text-lg font-medium">No CV Generated Yet</p>
+                      <p className="text-sm mt-2">Select your preferences and click "Generate CV"</p>
+                    </div>
                   </div>
-                </SelectItem>
-                <SelectItem value="latex">
-                  <div className="flex flex-col items-start">
-                    <span>LaTeX</span>
-                    <span className="text-sm text-muted-foreground">Professional typesetting</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+                )}
+              </CardContent>
+            </Card>
           </div>
+        </TabsContent>
 
-          {/* Photo Option */}
-          <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-50 dark:bg-blue-950">
-            <div>
-              <Label htmlFor="include-photo" className="flex items-center gap-2 cursor-pointer">
-                <ImageIcon className="h-4 w-4 text-blue-600" />
-                Include Photo Placeholder
-              </Label>
-              <p className="text-sm text-muted-foreground mt-1">
-                Add a professional photo section in the CV header. This is typically a 4x5cm or 2x2.5 inch space.
-              </p>
-            </div>
-            <Switch
-              id="include-photo"
-              checked={includePhoto}
-              onCheckedChange={setIncludePhoto}
-            />
-          </div>
+        {/* Cover Letter Tab Content */}
+        <TabsContent value="cover-letter" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[calc(100vh-16rem)]">
+            {/* Left Panel - Job Details */}
+            <Card className="lg:col-span-1 h-fit">
+              <CardHeader>
+                <CardTitle className="text-xl">Job Details</CardTitle>
+                <CardDescription>
+                  Enter the position you're applying for
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="job-title" className="text-base font-semibold">
+                    Job Title *
+                  </Label>
+                  <Input
+                    id="job-title"
+                    value={jobTitle}
+                    onChange={(e) => setJobTitle(e.target.value)}
+                    placeholder="e.g., Software Developer"
+                    className="h-11"
+                  />
+                </div>
 
-          <Button onClick={handleGenerateCV} disabled={loading} className="w-full">
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating CV...
-              </>
-            ) : (
-              <>
-                <FileText className="mr-2 h-4 w-4" />
-                Generate CV
-              </>
-            )}
-          </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="company-name" className="text-base font-semibold">
+                    Company Name *
+                  </Label>
+                  <Input
+                    id="company-name"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="e.g., Tech Corp"
+                    className="h-11"
+                  />
+                </div>
 
-          {/* Generated CV Display */}
-          {generatedCV && (
-            <div className="space-y-3">
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-semibold">Generated CV</h4>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Format: <span className="font-medium capitalize">{format}</span>
+                <div className="space-y-2">
+                  <Label htmlFor="job-description" className="text-base font-semibold">
+                    Job Description (Optional)
+                  </Label>
+                  <Textarea
+                    id="job-description"
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    placeholder="Paste the job description here for a more tailored cover letter..."
+                    rows={8}
+                    className="resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Adding the job description helps create a more personalized cover letter
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(generatedCV, 'cv')}
-                    title="Copy to clipboard"
-                  >
-                    {copiedCV ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => downloadAsFile(generatedCV, `${profile.firstName}_${profile.lastName}_CV.${format === 'markdown' ? 'md' : format === 'html' ? 'html' : 'tex'}`)}
-                    title="Download CV"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <CVPreviewFormatter content={generatedCV} format={format} />
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Cover Letter Generator Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
-            Cover Letter Generator
-          </CardTitle>
-          <CardDescription>
-            Create a personalized cover letter for specific job applications
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Job Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="job-title">Job Title *</Label>
-              <Input
-                id="job-title"
-                value={jobTitle}
-                onChange={(e) => setJobTitle(e.target.value)}
-                placeholder="e.g., Software Developer"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-name">Company Name *</Label>
-              <Input
-                id="company-name"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="e.g., Tech Corp"
-              />
-            </div>
+                <Separator />
+
+                <Button 
+                  onClick={handleGenerateCoverLetter} 
+                  disabled={coverLetterLoading || !jobTitle || !companyName} 
+                  className="w-full h-12 text-base"
+                >
+                  {coverLetterLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Generating Letter...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="mr-2 h-5 w-5" />
+                      Generate Cover Letter
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Right Panel - Preview */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl">Cover Letter Preview</CardTitle>
+                    <CardDescription className="mt-1">
+                      {generatedCoverLetter ? 
+                        `For ${jobTitle} at ${companyName}` : 
+                        'Your generated cover letter will appear here'
+                      }
+                    </CardDescription>
+                  </div>
+                  {generatedCoverLetter && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(generatedCoverLetter, 'coverLetter')}
+                        title="Copy to clipboard"
+                      >
+                        {copiedCoverLetter ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                        Copy
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadAsFile(generatedCoverLetter, `${profile.firstName}_${profile.lastName}_CoverLetter_${companyName.replace(/\s+/g, '_')}.txt`)}
+                        title="Download as text"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => exportToPDF(generatedCoverLetter, `${profile.firstName}_${profile.lastName}_CoverLetter_${companyName.replace(/\s+/g, '_')}.pdf`, 'coverLetter')}
+                        title="Export as PDF"
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Export PDF
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {generatedCoverLetter ? (
+                  <div className="border-2 rounded-lg p-8 bg-white dark:bg-gray-950 min-h-[600px]">
+                    <div className="text-sm leading-relaxed whitespace-pre-wrap font-serif max-w-3xl">
+                      {generatedCoverLetter}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed rounded-lg p-12 min-h-[600px] flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
+                      <Mail className="h-16 w-16 mx-auto mb-4 opacity-20" />
+                      <p className="text-lg font-medium">No Cover Letter Generated Yet</p>
+                      <p className="text-sm mt-2">Fill in the job details and click "Generate Cover Letter"</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="job-description">Job Description (Optional)</Label>
-            <Textarea
-              id="job-description"
-              value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
-              placeholder="Paste the job description here for a more tailored cover letter..."
-              rows={4}
-            />
-          </div>
-
-          <Button onClick={handleGenerateCoverLetter} disabled={coverLetterLoading} className="w-full">
-            {coverLetterLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating Cover Letter...
-              </>
-            ) : (
-              <>
-                <Mail className="mr-2 h-4 w-4" />
-                Generate Cover Letter
-              </>
-            )}
-          </Button>
-
-          {/* Generated Cover Letter Display */}
-          {generatedCoverLetter && (
-            <div className="space-y-3">
-              <Separator />
-              <div className="flex items-center justify-between">
-                <h4 className="font-semibold">Generated Cover Letter</h4>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(generatedCoverLetter, 'coverLetter')}
-                    title="Copy to clipboard"
-                  >
-                    {copiedCoverLetter ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => downloadAsFile(generatedCoverLetter, `${profile.firstName}_${profile.lastName}_CoverLetter_${companyName.replace(/\s+/g, '_')}.txt`)}
-                    title="Download cover letter"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <div className="border rounded-lg p-6 bg-white dark:bg-gray-950 max-h-96 overflow-y-auto">
-                <div className="text-sm leading-relaxed whitespace-pre-wrap font-serif">
-                  {generatedCoverLetter}
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Profile Summary */}
       <Card>
