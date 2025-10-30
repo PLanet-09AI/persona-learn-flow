@@ -675,8 +675,11 @@ const CVGenerator: React.FC<CVGeneratorProps> = ({ profile }) => {
               {generationStats.freeRemaining === 0 && (
                 <Button 
                   size="sm" 
-                  onClick={() => window.location.href = '/profile'}
-                  className="ml-4"
+                  onClick={() => {
+                    // Navigate to profile page where user can subscribe
+                    window.location.href = '/profile';
+                  }}
+                  className="ml-4 bg-blue-600 hover:bg-blue-700"
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
                   Subscribe Now

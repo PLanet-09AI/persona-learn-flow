@@ -85,6 +85,30 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
+    
+    // Payment records
+    match /payments/{paymentId} {
+      allow read: if isUserOwned(resource.data.userId) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isUserOwned(resource.data.userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Subscriptions
+    match /subscriptions/{subscriptionId} {
+      allow read: if isUserOwned(resource.data.userId) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isUserOwned(resource.data.userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // CV Generation tracking (userId as document ID)
+    match /cvGenerations/{userId} {
+      allow read: if isUserOwned(userId) || isAdmin();
+      allow create: if isAuthenticated() && userId == request.auth.uid;
+      allow update: if isUserOwned(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
   }
 }
 ```

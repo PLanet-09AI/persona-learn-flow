@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Clock, ArrowLeft } from "lucide-react";
 import { paymentFirebaseService } from "@/services/paymentFirebase";
+import { cvGenerationTracker } from "@/services/cvGenerationTracker";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -53,9 +54,13 @@ export const PaymentSuccess = () => {
             updatedAt: now
           });
 
+          // Activate CV generation subscription (20 generations)
+          await cvGenerationTracker.activatePaidSubscription(user.id);
+          console.log('✅ CV generation subscription activated - 20 generations unlocked');
+
           toast({
             title: "Payment Successful!",
-            description: "Your subscription is now active. Welcome aboard!",
+            description: "Your subscription is now active with 20 CV generations! Welcome aboard!",
           });
         }
       } catch (error) {
